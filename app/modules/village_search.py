@@ -38,7 +38,21 @@ PRESET_VILLAGES: List[Dict[str, Any]] = [
     {"id": 23, "name": "Bari", "district": "Dholpur", "state": "Rajasthan", "lat": 26.6508, "lon": 77.6163},
     {"id": 24, "name": "Panna Rural", "district": "Panna", "state": "Madhya Pradesh", "lat": 24.7196, "lon": 80.1979},
     {"id": 25, "name": "Mandla Basin", "district": "Mandla", "state": "Madhya Pradesh", "lat": 22.5986, "lon": 80.3712},
+    # Andhra Pradesh Curated Rural & Agricultural Regions
+    {"id": 26, "name": "Chandragiri Rural", "district": "Tirupati / Chittoor", "state": "Andhra Pradesh", "lat": 13.5835, "lon": 79.3178},
+    {"id": 27, "name": "Puttaparthi Rural", "district": "Sri Sathya Sai", "state": "Andhra Pradesh", "lat": 14.1681, "lon": 77.8109},
+    {"id": 28, "name": "Anantapur Rural (Singanamala)", "district": "Anantapur", "state": "Andhra Pradesh", "lat": 14.8052, "lon": 77.7214},
+    {"id": 29, "name": "Kurnool Basin (Alur)", "district": "Kurnool", "state": "Andhra Pradesh", "lat": 15.3056, "lon": 77.2418},
+    {"id": 30, "name": "Pulivendula Rural", "district": "YSR Kadapa", "state": "Andhra Pradesh", "lat": 14.4244, "lon": 78.2325},
+    {"id": 31, "name": "Tenali Rural", "district": "Guntur", "state": "Andhra Pradesh", "lat": 16.2437, "lon": 80.6400},
+    {"id": 32, "name": "Mangalagiri Basin", "district": "Guntur", "state": "Andhra Pradesh", "lat": 16.4300, "lon": 80.5700},
+    {"id": 33, "name": "Gannavaram Rural", "district": "Krishna", "state": "Andhra Pradesh", "lat": 16.5408, "lon": 80.8037},
+    {"id": 34, "name": "Kandukur Rural", "district": "Nellore", "state": "Andhra Pradesh", "lat": 15.2167, "lon": 79.9042},
+    {"id": 35, "name": "Kovvur Rural", "district": "East Godavari", "state": "Andhra Pradesh", "lat": 17.0142, "lon": 81.7289},
+    {"id": 36, "name": "Araku Valley Basin", "district": "Alluri Sitharama Raju", "state": "Andhra Pradesh", "lat": 18.3273, "lon": 82.8775},
+    {"id": 37, "name": "Anakapalle Rural", "district": "Anakapalli", "state": "Andhra Pradesh", "lat": 17.6896, "lon": 83.0034},
 ]
+
 
 
 async def search_villages(query: str, limit: int = 8) -> List[Dict[str, Any]]:
