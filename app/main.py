@@ -18,6 +18,7 @@ Docs auto-generated at: /docs
 
 import os
 import time
+import json
 import tempfile
 from datetime import datetime, timezone
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Query
@@ -46,11 +47,15 @@ from app.modules.area_analysis import analyze_land_area
 from app.modules.village_search import search_villages
 
 START_TIME = time.time()
+DB_IS_AVAILABLE = False
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+HISTORY_FILE = os.path.join(DATA_DIR, "analyses_history.json")
 
 # In-memory storage buffers for zero-dependency / container-standalone execution
 IN_MEMORY_ANALYSES: List[Dict[str, Any]] = [
     {
         "request_id": 101,
+        "village_id": 1,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "lat": 21.24185,
         "lon": 81.28689,
@@ -60,6 +65,28 @@ IN_MEMORY_ANALYSES: List[Dict[str, Any]] = [
     }
 ]
 IN_MEMORY_CACHE: Dict[str, Dict[str, Any]] = {}
+
+
+def _load_history_from_file():
+    global IN_MEMORY_ANALYSES
+    if os.path.exists(HISTORY_FILE):
+        try:
+            with open(HISTORY_FILE, "r", encoding="utf-8") as f:
+                loaded = json.load(f)
+                if isinstance(loaded, list) and loaded:
+                    IN_MEMORY_ANALYSES = loaded
+        except Exception as e:
+            print(f"Notice: Could not load history file: {e}")
+
+
+def _save_history_to_file():
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+            json.dump(IN_MEMORY_ANALYSES[:100], f, indent=2)
+    except Exception as e:
+        print(f"Notice: Could not save history file: {e}")
+
 
 app = FastAPI(
     title="Bhagiratha: AI-based Village Pond Planning System",
@@ -76,11 +103,19 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @app.on_event("startup")
 def on_startup():
+    global DB_IS_AVAILABLE
+    _load_history_from_file()
     try:
-        from app.db.database import engine, Base
-        Base.metadata.create_all(bind=engine)
-        print("✓ Connected to PostgreSQL database and initialized tables.")
+        from app.db.database import engine, Base, is_db_available
+        if is_db_available():
+            Base.metadata.create_all(bind=engine)
+            DB_IS_AVAILABLE = True
+            print("✓ Connected to PostgreSQL database and initialized PostGIS tables.")
+        else:
+            DB_IS_AVAILABLE = False
+            print("NOTICE: PostgreSQL is not reachable. Operating in resilient persistent-file mode.")
     except Exception as e:
+        DB_IS_AVAILABLE = False
         print(f"NOTICE: Database operating in memory-resilient mode ({e}).")
 
 
@@ -98,7 +133,10 @@ async def root():
 
 
 def _get_db_lazy():
-    """Yields a database session if available, otherwise yields None gracefully."""
+    """Yields a database session if live, otherwise yields None gracefully."""
+    if not DB_IS_AVAILABLE:
+        yield None
+        return
     try:
         from app.db.database import get_db
         yield from get_db()
@@ -187,6 +225,7 @@ async def analyze(req: AnalyzeRequest, db=Depends(_get_db_lazy)):
     IN_MEMORY_ANALYSES.insert(0, record)
     if len(IN_MEMORY_ANALYSES) > 50:
         IN_MEMORY_ANALYSES.pop()
+    _save_history_to_file()
 
     response = AnalyzeResponse(
         request_id=request_id,
@@ -284,6 +323,7 @@ async def analyze_area_endpoint(req: AnalyzeAreaRequest):
         "suitability_score": res.recommendation.suitability_score if res.recommendation else 85,
     }
     IN_MEMORY_ANALYSES.insert(0, record)
+    _save_history_to_file()
     return res
 
 
@@ -375,6 +415,7 @@ async def analyze_contour(contour_map: UploadFile = File(...)):
         "suitability_score": rec_result.suitability_score,
     }
     IN_MEMORY_ANALYSES.insert(0, record)
+    _save_history_to_file()
 
     return ContourAnalysisResponse(
         source_filename=filename,
@@ -458,9 +499,9 @@ async def get_recent_analyses_endpoint(db=Depends(_get_db_lazy)):
 # ---------- System Health & Monitoring ----------
 
 @app.get("/api/health", response_model=HealthResponse)
-async def health_check(db=Depends(_get_db_lazy)):
+async def health_check():
     import resource
-    db_status = "connected (PostgreSQL)" if db is not None else "standby (resilient memory-mode)"
+    db_status = "connected (PostgreSQL + PostGIS)" if DB_IS_AVAILABLE else "standby (resilient persistent-file mode)"
     mem_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     mem_mb = mem_kb / 1024.0 if mem_kb > 10000 else mem_kb  # linux returns KB
     return HealthResponse(
@@ -471,3 +512,4 @@ async def health_check(db=Depends(_get_db_lazy)):
         memory_mb=round(mem_mb, 1),
         pid=os.getpid(),
     )
+

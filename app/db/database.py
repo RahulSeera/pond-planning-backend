@@ -20,15 +20,31 @@ DATABASE_URL = os.environ.get(
     "postgresql+psycopg2://pondapp:pondapp_dev@localhost:5432/ponddb",  # fallback only - set .env instead
 )
 
-engine = create_engine(DATABASE_URL)
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"connect_timeout": 3} if "postgresql" in DATABASE_URL else {},
+    pool_pre_ping=True,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
+def is_db_available() -> bool:
+    """Checks if the configured database can be reached within 3 seconds."""
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return True
+    except Exception:
+        return False
+
+
 def get_db():
-    """FastAPI dependency - yields a session, closes it after the request."""
+    """FastAPI dependency - yields a session if DB is live, closes it after the request."""
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
