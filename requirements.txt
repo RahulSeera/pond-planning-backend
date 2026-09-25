@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+pydantic
+httpx
+rasterio
+pysheds
+numpy>=2
+sqlalchemy
+psycopg2-binary
+geoalchemy2
+shapely
+python-dotenv
+lxml
+python-multipart
+scipy

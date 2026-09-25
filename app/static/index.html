@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jal-Drishti | AI-based Village Pond Planning System</title>
+  <meta name="description" content="AI-based Village Pond Planning System using digital elevation models, D8 catchment delineation, flow accumulation, and historical precipitation analysis." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💧</text></svg>" />
+
+  <!-- Google Fonts: Outfit (Brand & Headings) and Inter (Body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Leaflet & Leaflet.draw Styles -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+
+  <!-- Application CSS -->
+  <link rel="stylesheet" href="/static/css/style.css" />
+
+  <!-- Chart.js & Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body class="dark-theme">
+  <!-- Top Application Header -->
+  <header class="top-nav" id="top-nav">
+    <div class="brand-container">
+      <div class="brand-icon">
+        <span class="pulse-ring"></span>
+        💧
+      </div>
+      <div class="brand-text">
+        <h1 class="brand-title">Jal-Drishti <span class="badge-tag">AI Hydrology</span></h1>
+        <p class="brand-subtitle">Village Pond Planning & Catchment Delineation</p>
+      </div>
+    </div>
+
+    <!-- Search Bar for Villages -->
+    <div class="nav-search-wrapper" id="nav-search-wrapper">
+      <div class="search-input-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="village-search-input" placeholder="Search village, block, district (e.g. Bhilai, Patan)..." autocomplete="off" />
+        <button id="clear-search-btn" class="clear-search-btn" title="Clear search" style="display: none;">✕</button>
+      </div>
+      <div id="search-results-dropdown" class="search-dropdown" style="display: none;"></div>
+    </div>
+
+    <!-- Quick Mode Selectors -->
+    <div class="mode-tabs" role="tablist" id="mode-tabs">
+      <button class="mode-tab active" id="tab-point" data-mode="point" role="tab" aria-selected="true">
+        <span class="tab-icon">📍</span> Point Analysis
+      </button>
+      <button class="mode-tab" id="tab-area" data-mode="area" role="tab" aria-selected="false">
+        <span class="tab-icon">📐</span> Land Area Selection
+      </button>
+      <button class="mode-tab" id="tab-contour" data-mode="contour" role="tab" aria-selected="false">
+        <span class="tab-icon">🗺️</span> Contour Map (KML)
+      </button>
+    </div>
+
+    <!-- Right Utility Buttons -->
+    <div class="header-actions">
+      <button class="btn btn-outline" id="load-sample-btn" title="Load real Chhattisgarh 1m contour sample data">
+        ✨ Load Sample Demo
+      </button>
+      <button class="btn btn-ghost" id="history-modal-btn" title="View past analyses">
+        📜 History
+      </button>
+      <button class="btn btn-ghost" id="guide-modal-btn" title="System Architecture & Formula Guide">
+        ℹ️ Info
+      </button>
+      <div class="status-indicator live" id="system-status-indicator" title="Server Status: Connected">
+        <span class="status-dot"></span>
+        <span class="status-label">Online</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="workspace-container" id="workspace-container">
+    
+    <!-- Left Map Section -->
+    <section class="map-section" id="map-section">
+      <div id="map" class="map-viewport" aria-label="Interactive Satellite Hydrological Map"></div>
+
+      <!-- Floating Map Toolbar -->
+      <div class="map-floating-bar" id="map-floating-bar">
+        <div class="basemap-selector" id="basemap-selector">
+          <label>Basemap:</label>
+          <select id="basemap-dropdown">
+            <option value="satellite" selected>🛰️ Esri Satellite</option>
+            <option value="topo">⛰️ OpenTopoMap</option>
+            <option value="cartodark">🌑 Carto Dark</option>
+            <option value="osm">🗺️ Street Map</option>
+          </select>
+        </div>
+
+        <div class="map-quick-tools">
+          <button class="map-tool-btn" id="draw-area-tool-btn" title="Draw bounding box on map">
+            📐 Draw Area Box
+          </button>
+          <button class="map-tool-btn" id="zoom-catchment-btn" title="Zoom to fitted catchment boundary" disabled>
+            🎯 Fit Basin
+          </button>
+          <button class="map-tool-btn" id="clear-map-btn" title="Clear current markers & overlays">
+            🧹 Clear Map
+          </button>
+        </div>
+      </div>
+
+      <!-- Map Coordinates HUD -->
+      <div class="map-hud-coordinates" id="map-hud-coordinates">
+        <span id="hud-lat">Lat: 21.24185° N</span> | <span id="hud-lon">Lon: 81.28689° E</span> | <span id="hud-zoom">Zoom: 14</span>
+      </div>
+
+      <!-- Map Legend -->
+      <div class="map-legend" id="map-legend">
+        <div class="legend-header">Map Legend</div>
+        <div class="legend-item"><span class="legend-symbol pond-symbol"></span> Suggested Pond Location</div>
+        <div class="legend-item"><span class="legend-symbol basin-symbol"></span> Delineated Catchment Basin</div>
+        <div class="legend-item"><span class="legend-symbol land-symbol"></span> Selected Land Area</div>
+      </div>
+    </section>
+
+    <!-- Right Analytics & Control Panel -->
+    <aside class="sidebar-panel" id="sidebar-panel">
+
+      <!-- Context Mode Input Card -->
+      <div class="control-card glass-card" id="control-card">
+        
+        <!-- Mode: Point Selection -->
+        <div class="mode-view active" id="view-point">
+          <div class="mode-header">
+            <h3>📍 Point-based Catchment Analysis</h3>
+            <p>Click anywhere on the map or enter coordinates to delineate the upstream catchment basin.</p>
+          </div>
+          <div class="input-grid">
+            <div class="form-group">
+              <label for="point-lat">Latitude (°N)</label>
+              <input type="number" step="0.0001" id="point-lat" value="21.2418" placeholder="e.g. 21.2418" />
+            </div>
+            <div class="form-group">
+              <label for="point-lon">Longitude (°E)</label>
+              <input type="number" step="0.0001" id="point-lon" value="81.2869" placeholder="e.g. 81.2869" />
+            </div>
+          </div>
+          <button class="btn btn-primary full-width" id="run-point-analysis-btn">
+            🚀 Delineate Basin & Size Pond
+          </button>
+        </div>
+
+        <!-- Mode: Land Area Selection -->
+        <div class="mode-view" id="view-area">
+          <div class="mode-header">
+            <h3>📐 Land Area Selection</h3>
+            <p>Select a candidate village boundary or agricultural zone. The algorithm will auto-discover the lowest-point drainage convergence and optimal pond site.</p>
+          </div>
+          <div class="area-instructions-box">
+            <div class="instruction-step">
+              <span class="step-num">1</span>
+              <span>Click <strong>"Draw Area Box"</strong> or drag directly on the map.</span>
+            </div>
+            <div class="instruction-step">
+              <span class="step-num">2</span>
+              <span>Or use the bounding box coordinates below:</span>
+            </div>
+          </div>
+          <div class="input-grid quad-grid">
+            <div class="form-group">
+              <label for="area-south">South (Min Lat)</label>
+              <input type="number" step="0.001" id="area-south" value="21.230" />
+            </div>
+            <div class="form-group">
+              <label for="area-north">North (Max Lat)</label>
+              <input type="number" step="0.001" id="area-north" value="21.250" />
+            </div>
+            <div class="form-group">
+              <label for="area-west">West (Min Lon)</label>
+              <input type="number" step="0.001" id="area-west" value="81.275" />
+            </div>
+            <div class="form-group">
+              <label for="area-east">East (Max Lon)</label>
+              <input type="number" step="0.001" id="area-east" value="81.295" />
+            </div>
+          </div>
+          <button class="btn btn-primary full-width" id="run-area-analysis-btn">
+            🔍 Discover Pond Site & Analyze Basin
+          </button>
+        </div>
+
+        <!-- Mode: Contour Map Upload -->
+        <div class="mode-view" id="view-contour">
+          <div class="mode-header">
+            <h3>🗺️ Upload Contour Map (.kml / .kmz)</h3>
+            <p>Upload high-resolution topographic contour files. Interpolates to DEM, runs D8 flow accumulation, auto-selects site, and computes runoff.</p>
+          </div>
+          
+          <div class="upload-dropzone" id="upload-dropzone">
+            <input type="file" id="contour-file-input" accept=".kml,.kmz" style="display: none;" />
+            <div class="dropzone-content">
+              <span class="upload-icon">📁</span>
+              <p class="dropzone-main-text">Drag & drop your <strong>.kml</strong> or <strong>.kmz</strong> contour file</p>
+              <p class="dropzone-sub-text">or <span class="browse-link">browse from computer</span></p>
+            </div>
+          </div>
+
+          <div id="file-info-preview" class="file-preview-card" style="display: none;">
+            <div class="file-details">
+              <span class="file-icon">📄</span>
+              <div class="file-meta">
+                <strong id="preview-filename">contours_1m.kml</strong>
+                <span id="preview-filesize">6.4 MB</span>
+              </div>
+            </div>
+            <button id="remove-file-btn" class="btn-icon" title="Remove file">✕</button>
+          </div>
+
+          <button class="btn btn-primary full-width" id="run-contour-analysis-btn" disabled>
+            ⚡ Run Contour Flow Analysis
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Processing Loading State -->
+      <div class="loading-card glass-card" id="loading-card" style="display: none;">
+        <div class="spinner-pulse"></div>
+        <h4 id="loading-title">Processing Hydrological Model...</h4>
+        <p id="loading-subtitle">Conditioning DEM & computing D8 flow directions...</p>
+        <div class="pipeline-progress-bar">
+          <div class="pipeline-progress-fill" id="pipeline-progress-fill"></div>
+        </div>
+      </div>
+
+      <!-- Results Dashboard Panel -->
+      <div class="results-dashboard" id="results-dashboard" style="display: none;">
+
+        <!-- Results Header Banner -->
+        <div class="results-header-banner">
+          <div>
+            <span class="results-tag">Analysis Complete</span>
+            <h2 class="results-title" id="results-title">Optimal Pond Planning Results</h2>
+          </div>
+          <div class="suitability-badge-wrapper">
+            <div class="suitability-badge" id="suitability-badge">
+              <span class="badge-score" id="res-score-badge">92</span>
+              <span class="badge-label">Suitability</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 Primary Stat Cards -->
+        <div class="metrics-grid">
+          
+          <!-- Metric 1: Suggested Pond Location -->
+          <div class="metric-card glass-card">
+            <div class="metric-icon location-icon">📍</div>
+            <div class="metric-body">
+              <span class="metric-label">Suggested Pond Site</span>
+              <div class="metric-value-row">
+                <span class="metric-value coords-value" id="res-coords">21.24185, 81.28689</span>
+                <button class="btn-copy" id="copy-coords-btn" title="Copy Coordinates">📋</button>
+              </div>
+              <span class="metric-hint">Highest flow-convergence point</span>
+            </div>
+          </div>
+
+          <!-- Metric 2: Catchment Area -->
+          <div class="metric-card glass-card">
+            <div class="metric-icon basin-icon">🏞️</div>
+            <div class="metric-body">
+              <span class="metric-label">Catchment Area</span>
+              <div class="metric-value-row">
+                <span class="metric-value" id="res-catchment-area">3.8715</span>
+                <span class="metric-unit">km²</span>
+              </div>
+              <span class="metric-hint" id="res-catchment-ha">≈ 387.15 Hectares</span>
+            </div>
+          </div>
+
+          <!-- Metric 3: Expected Water Volume -->
+          <div class="metric-card glass-card highlight-metric">
+            <div class="metric-icon water-icon">💧</div>
+            <div class="metric-body">
+              <span class="metric-label">Expected Water Volume</span>
+              <div class="metric-value-row">
+                <span class="metric-value" id="res-water-volume">1,273,723</span>
+                <span class="metric-unit">m³</span>
+              </div>
+              <span class="metric-hint" id="res-water-volume-ml">≈ 1,273.7 Million Litres</span>
+            </div>
+          </div>
+
+          <!-- Metric 4: Average Slope -->
+          <div class="metric-card glass-card">
+            <div class="metric-icon slope-icon">📐</div>
+            <div class="metric-body">
+              <span class="metric-label">Average Slope</span>
+              <div class="metric-value-row">
+                <span class="metric-value" id="res-slope">4.02</span>
+                <span class="metric-unit">%</span>
+              </div>
+              <span class="metric-hint">Gentle slope ideal for ponding</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Hydraulic Sizing Specifications -->
+        <div class="card-section glass-card">
+          <div class="section-title-row">
+            <h4>🏗️ Recommended Pond Sizing & Sizing Parameters</h4>
+            <span class="formula-chip">Rational Method: Q = C · I · A</span>
+          </div>
+          <div class="sizing-grid">
+            <div class="sizing-item">
+              <span class="sizing-label">Design Excavation Depth</span>
+              <strong class="sizing-value" id="res-pond-depth">4.5 m</strong>
+              <small class="sizing-note">Optimal anti-evaporation depth</small>
+            </div>
+            <div class="sizing-item">
+              <span class="sizing-label">Recommended Surface Area</span>
+              <strong class="sizing-value" id="res-pond-area">198,134 m²</strong>
+              <small class="sizing-note">≈ 19.8 Hectares footprint</small>
+            </div>
+            <div class="sizing-item">
+              <span class="sizing-label">Target Storage Capacity</span>
+              <strong class="sizing-value" id="res-pond-capacity">891,606 m³</strong>
+              <small class="sizing-note">70% seasonal capture efficiency</small>
+            </div>
+            <div class="sizing-item">
+              <span class="sizing-label">Suitability Assessment</span>
+              <strong class="sizing-value" id="res-suitability-grade" style="color: #10b981;">Highly Suitable (92/100)</strong>
+              <small class="sizing-note" id="res-suitability-desc">Adequate catchment & gentle slope</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Precipitation & Monsoon Chart -->
+        <div class="card-section glass-card">
+          <div class="section-title-row">
+            <h4>🌧️ Precipitation Profile & Historical Runoff</h4>
+            <span class="data-source-chip" id="res-rainfall-source">Open-Meteo 10-Yr Historical Archive</span>
+          </div>
+          <div class="rainfall-stats-summary">
+            <div class="rf-pill">
+              <span>Annual Average:</span>
+              <strong id="res-annual-rain">1,180 mm</strong>
+            </div>
+            <div class="rf-pill">
+              <span>Monsoon Rainfall:</span>
+              <strong id="res-monsoon-rain">940 mm (79.7%)</strong>
+            </div>
+            <div class="rf-pill">
+              <span>Non-Monsoon:</span>
+              <strong id="res-non-monsoon-rain">240 mm (20.3%)</strong>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="rainfall-chart" height="140"></canvas>
+          </div>
+        </div>
+
+        <!-- Warnings / Notes -->
+        <div id="results-warnings-box" class="warning-callout" style="display: none;">
+          <span class="warning-icon">⚠️</span>
+          <div class="warning-content" id="results-warnings-content"></div>
+        </div>
+
+        <!-- Action Export Buttons -->
+        <div class="results-actions-bar">
+          <button class="btn btn-outline" id="export-geojson-btn">
+            📥 Export GeoJSON Basin
+          </button>
+          <button class="btn btn-outline" id="download-report-btn">
+            📄 Print / Save Summary
+          </button>
+          <button class="btn btn-primary" id="recenter-basin-btn">
+            🎯 Recenter on Basin
+          </button>
+        </div>
+
+      </div>
+
+    </aside>
+  </main>
+
+  <!-- History Modal -->
+  <div class="modal-overlay" id="history-modal" style="display: none;">
+    <div class="modal-card glass-card">
+      <div class="modal-header">
+        <h3>📜 Recent Analysis History</h3>
+        <button class="btn-close" id="close-history-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Reload any previously delineated catchment basin and pond sizing calculation directly onto the map:</p>
+        <div class="history-list" id="history-list-container">
+          <div class="loading-spinner-small">Loading history...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Algorithm / HLD Guide Modal -->
+  <div class="modal-overlay" id="guide-modal" style="display: none;">
+    <div class="modal-card glass-card large-modal">
+      <div class="modal-header">
+        <h3>ℹ️ System Architecture & Hydrological Algorithm</h3>
+        <button class="btn-close" id="close-guide-modal">✕</button>
+      </div>
+      <div class="modal-body guide-content">
+        <h4>1. End-to-End Pipeline</h4>
+        <div class="workflow-steps">
+          <div class="wf-step">
+            <strong>Step 1: Input Terrain</strong>
+            <p>Accepts user click point, drawn bounding box, or uploaded KML/KMZ contour lines. Unzips and parses scattered coordinate elevations.</p>
+          </div>
+          <div class="wf-step">
+            <strong>Step 2: Elevation Grid</strong>
+            <p>Converts scattered 3D contours into a continuous GeoTIFF DEM via SciPy 2D linear Delaunay interpolation with nearest-neighbor convex-hull filling.</p>
+          </div>
+          <div class="wf-step">
+            <strong>Step 3: D8 Hydrological Analysis</strong>
+            <p>Priority-flood fills depressions, resolves flats, calculates D8 steepest-descent flow directions, and computes upstream flow accumulation.</p>
+          </div>
+          <div class="wf-step">
+            <strong>Step 4: Optimal Site & Runoff</strong>
+            <p>Discovers the maximum convergence interior cell as the suggested pond site. Delineates the basin polygon and calculates expected runoff via the Rational Method: $Q = C \cdot I \cdot A$.</p>
+          </div>
+        </div>
+
+        <h4>2. Rational Method Formulation</h4>
+        <div class="formula-box">
+          <p><strong>$Q = C \times I \times A$</strong></p>
+          <ul>
+            <li><strong>$C = 0.35$</strong>: Runoff coefficient for rural/agricultural land cover in central India.</li>
+            <li><strong>$I$</strong>: Design seasonal monsoon rainfall intensity (meters), queried from Open-Meteo historical reanalysis.</li>
+            <li><strong>$A$</strong>: Delineated upstream catchment surface area ($m^2$) computed from D8 flow routing.</li>
+            <li><strong>Capacity</strong>: $V_{target} = 0.70 \times Q$ (sizes pond for 70% seasonal capture).</li>
+          </ul>
+        </div>
+
+        <h4>3. System Specifications</h4>
+        <p>Built as a high-performance modular monolith with FastAPI, Rasterio, PySheds, GeoAlchemy2, PostgreSQL/PostGIS, and Leaflet.js.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application JS -->
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
