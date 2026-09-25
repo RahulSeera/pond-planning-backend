@@ -1,5 +1,5 @@
 /**
- * Jal-Drishti — AI-based Village Pond Planning System
+ * Bhagiratha — AI-based Village Pond Planning System
  * Interactive Leaflet Frontend Client Logic
  */
 

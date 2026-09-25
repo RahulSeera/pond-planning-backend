@@ -1,100 +1,127 @@
-# Pond Planning System — Backend
+# Bhagiratha (भगीरथ)
+## AI-Based Village Pond Planning & Catchment Delineation System
 
-## Two phases in this repo
+> *Named after the legendary sage-king Bhagiratha who brought celestial waters down from the heavens to revitalize parched lands, this system automates hydrological analysis and scientific pond planning for rural water conservation.*
 
-### Phase 1 — point-based analysis (`POST /api/analyze`)
-User provides `{lat, lon}` → real OpenTopography DEM + Open-Meteo rainfall →
-Rational Method runoff + pond sizing → saved to PostgreSQL+PostGIS, cached.
+---
 
-### Phase 2 — contour-map analysis (`POST /analyzeContour`)
-User uploads a KML/KMZ contour map → terrain is parsed and interpolated into a
-DEM → the SAME D8 flow-direction/catchment code from Phase 1 runs on it →
-a pond site is picked **automatically** (highest flow-accumulation point,
-not user-provided) → catchment area/slope/polygon returned as JSON.
+## Overview
 
-This is the important design point if asked: Phase 2 does NOT duplicate the
-terrain analysis logic. `catchment.py`'s D8/flow-accumulation code doesn't
-know or care whether its DEM came from a downloaded SRTM tile or from
-interpolated contour lines — it just operates on a GeoTIFF either way. Only
-the *input* pipeline (parse KML → interpolate → write GeoTIFF) is new.
+**Bhagiratha** is an end-to-end web-based geospatial decision-support system built for village administrators, irrigation engineers, and rural planners. It automates:
+1. **D8 Hydrological Catchment Delineation**: Computes flow directions, depression conditioning, and upstream drainage basins.
+2. **Automated Pond Site Selection**: Discovers the optimal natural convergence point via interior peak flow-accumulation scanning without requiring manual coordinates.
+3. **Interactive Land Area Selection**: Evaluates any candidate village or agricultural boundary drawn directly on the map.
+4. **Precipitation & Runoff Modeling**: Integrates 10-year daily historical weather from Open-Meteo to calculate seasonal runoff via the **Rational Method** ($Q = C \times I \times A$).
+5. **Hydraulic Pond Sizing**: Determines optimal pond depth ($2.5$--$4.5\,\text{m}$), required surface footprint, and target storage capacity ($70\%$ seasonal capture).
+6. **Rich Interactive Leaflet GIS Map**: Renders satellite basemaps, glowing cyan catchment boundaries, pulsing pond markers, and Chart.js monsoon precipitation graphs.
 
-## Status
+---
 
-| Module | Status |
-|---|---|
-| API layer (`main.py`) | Real, tested — both `/api/analyze` and `/analyzeContour` |
-| Recommendation (Rational Method) | Real, tested |
-| Terrain — D8/catchment (`catchment.py`) | Real, tested — proven against real SRTM data AND real contour-derived data |
-| Terrain — OpenTopography fetch | Real, network-tested on the dev machine |
-| Rainfall (Open-Meteo) | Real, tested |
-| Database (PostgreSQL+PostGIS) | Real, tested on the dev machine |
-| Caching | Real, tested |
-| **KML/KMZ parser** (`kml_parser.py`) | **Real, tested against the real sample file** — 1355 contour lines, elevation 267-298m |
-| **Contour-to-DEM interpolation** (`dem_from_contours.py`) | **Real, tested** — scipy griddata, no gaps in output |
-| **Auto pond-site selection** (`find_pond_site` in `catchment.py`) | **Real, tested** — finds a 3.8 km² catchment automatically on the real sample map |
+## System Architecture
 
-## Setup
+```
+                         ┌──────────────────────────────────────────┐
+                         │             CLIENT (Browser)             │
+                         │   Leaflet Satellite Map · Area Drawing   │
+                         │   Village Search · Analytics Dashboard   │
+                         └────────────────────┬─────────────────────┘
+                                              │ HTTPS / JSON (REST)
+                         ┌────────────────────▼─────────────────────┐
+                         │          API COORDINATOR (FastAPI)       │
+                         │    Validation · Orchestration · Cache    │
+                         └───────────┬───────────────────┬──────────┘
+                                     │                   │
+                  ┌──────────────────▼──┐             ┌──▼──────────────────┐
+                  │   TERRAIN ENGINE    │             │ PRECIPITATION ENGINE│
+                  │   KML/KMZ Parser    │             │ Open-Meteo 10-Yr DB │
+                  │   2D Interpolator   │             │ Seasonal Breakdown  │
+                  │   D8 Flow Routing   │             └──────────┬──────────┘
+                  │   Auto Pour-Point   │                        │
+                  └──────────┬──────────┘                        │
+                             │                                   │
+                             └─────────────────┬─────────────────┘
+                                               ▼
+                               ┌───────────────────────────────┐
+                               │     RECOMMENDATION ENGINE     │
+                               │  Rational Method: Q = C·I·A   │
+                               │  Depth & Capacity Sizing      │
+                               │  Suitability Scoring (0-100)  │
+                               └───────────────┬───────────────┘
+                                               ▼
+                               ┌───────────────────────────────┐
+                               │       PERSISTENCE LAYER       │
+                               │  PostgreSQL + PostGIS / Cache │
+                               │  In-Memory Resilient Fallback │
+                               └───────────────────────────────┘
+```
+
+---
+
+## API Endpoints Reference
+
+| Method | Endpoint | Request Payload | Response Summary |
+|---|---|---|---|
+| `GET` | `/` | — | Interactive Leaflet GIS Web Application |
+| `POST` | `/api/analyze` | `{"lat": float, "lon": float, "village_id": int?}` | Catchment polygon, area, slope, rainfall stats, runoff volume, pond sizing |
+| `GET` | `/api/analyze/{id}` | Path parameter: `id` | Previously computed analysis retrieved by ID |
+| `POST` | `/api/analyze-area` | `{"bounds": {"min_lat", "max_lat", "min_lon", "max_lon"}}` | Discovers optimal pond site within drawn area, basin boundary, volume, and sizing |
+| `POST` | `/analyzeContour` | Multipart form: `contour_map` (.kml / .kmz) | Auto-discovered site, 1,355 lines parsed, 3.87 km² basin, 1.27M m³ runoff, pond dimensions |
+| `GET` | `/api/villages/search` | Query: `?q=<name>` | Matching Indian villages/districts with centroid coordinates |
+| `GET` | `/api/villages/{id}/history` | Path parameter: `id` | Past analysis runs for the specified village |
+| `GET` | `/api/analyses/recent` | — | Recent 12 analysis runs across all sessions |
+| `GET` | `/api/health` | — | Health check: uptime, memory RSS, PID, and database status |
+
+---
+
+## Database Architecture: Localhost vs. Remote SSH
+
+- **Local Machine**: PostgreSQL + PostGIS runs on `localhost:5433` (Database: `ponddb`, User: `pondapp`).
+- **Remote Container (`10.1.75.53:3247`)**:
+  - The application includes an **automatic in-memory resilient fallback** (`_IN_MEMORY_CACHE` & `_IN_MEMORY_ANALYSES`). If PostgreSQL is not running locally in the container, the backend operates in zero-dependency resilient mode—all endpoints, history, and caching function smoothly without throwing database errors.
+  - To forward your local PostgreSQL to the remote container:
+    ```bash
+    ssh -R 5433:localhost:5433 -p 2247 student@10.1.75.53
+    ```
+
+---
+
+## Local Setup & Quick Start
 
 ```bash
-pip install -r requirements.txt --break-system-packages
+# 1. Activate Python 3.12 virtual environment
+source .venv/bin/activate
+
+# 2. Configure .env
 cp .env.example .env
-# fill in OPENTOPOGRAPHY_API_KEY and DATABASE_URL
-uvicorn app.main:app --reload
-```
-Docs (including the contour endpoint) at **http://127.0.0.1:8000/docs**.
+# Edit OPENTOPOGRAPHY_API_KEY and DATABASE_URL if needed
 
-## Testing the contour endpoint manually
+# 3. Launch Development Server
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+
+# 4. Open Application in Browser
+http://127.0.0.1:8000/
+# Interactive API documentation at: http://127.0.0.1:8000/docs
+```
+
+---
+
+## Automated Verification & Test Suite
+
 ```bash
-curl -X POST http://127.0.0.1:8000/analyzeContour \
-  -F "file=@tests/sample_data/contours_1m.kml"
+# Run all unit, integration, and stress tests:
+python3 tests/test_contour.py     # Real benchmark 1m contour map (1355 lines)
+python3 tests/test_extended.py    # KMZ archive, empty files, malformed XML, area selection, health
+python3 tests/test_rainfall.py    # Open-Meteo aggregation & monsoon breakdown
+python3 tests/test_cache.py       # Coarse-grid rounded spatial caching (TTL)
+python3 tests/test_terrain.py     # D8 flow routing & depression filling
+python3 tests/test_db.py          # PostgreSQL+PostGIS spatial geometry persistence
 ```
 
-## How the catchment estimation approach works (for the report)
-1. **Parse**: every `<Placemark>` with a `<LineString>` is a contour line; its elevation
-   comes from the `<name>` tag (this sample file's convention) or, as a fallback for
-   other KML exports, the average Z-coordinate of its points.
-2. **Interpolate**: every point along every contour line is a known (lon, lat, elevation)
-   sample. `scipy.interpolate.griddata` builds a continuous elevation grid from these
-   scattered points (linear interpolation, nearest-neighbor fallback at the edges).
-3. **Flow analysis**: the grid is written as a GeoTIFF and run through the same D8
-   flow-direction + flow-accumulation algorithm used for real DEM data.
-4. **Site selection**: the interior pixel with the highest flow accumulation is picked
-   as the suggested pond site — the point where the most water naturally converges.
-   Border pixels are excluded (accumulation is artificially inflated at a DEM's edge).
-5. **Catchment stats**: area and average slope are computed the same way as Phase 1,
-   with the same degree-to-meters unit correction.
+---
 
-## Generalization (per the assignment's requirement)
-Nothing in the pipeline is hardcoded to this sample map:
-- The parser walks the KML tree structurally (any Placemark with a LineString),
-  not by folder name or position.
-- Elevation extraction falls back to Z-coordinates if `<name>` isn't numeric,
-  covering KML exports that encode elevation differently.
-- The interpolation grid is sized from the actual bounding box of whatever
-  points are parsed.
-- The pond site is discovered from the terrain's own flow pattern, not read
-  from a lookup table.
+## Deliverables
 
-## Known limitations (honest, not hidden)
-- If the auto-selected site doesn't land on a clear drainage line, the catchment
-  area can come back very small — the API surfaces this as a warning rather than
-  silently returning a misleading tiny number.
-- Elevation-to-meters pixel conversion is a latitude-based approximation (same
-  simplification as Phase 1), not a full UTM reprojection.
-- Contour parsing assumes 2D coordinates or a consistent elevation-per-line
-  encoding; a KML mixing both conventions in one file isn't handled.
-
-## Tests (all passing)
-```bash
-python3 tests/test_contour.py    # full contour pipeline, real sample file, real HTTP endpoint
-python3 tests/test_terrain.py
-python3 tests/test_rainfall.py
-python3 tests/test_db.py
-python3 tests/test_cache.py
-```
-
-## What's left for the report deliverables
-- GitHub repo — push this project and link it
-- API documentation — auto-generated at `/docs`, screenshot or link it
-- Demonstration — `tests/test_contour.py`'s output IS your demonstration proof;
-  can also screenshot a Swagger UI run against `tests/sample_data/contours_1m.kml`
+- **Live Deployed Web App**: `http://10.1.75.53:3247/`
+- **GitHub Repository**: `https://github.com/RahulSeera/pond-planning-backend`
+- **Final Report (Overleaf Template)**: `report/final_report.tex`
+- **YouTube 5-Minute Demo Script**: `report/YOUTUBE_DEMO_SCRIPT.md`

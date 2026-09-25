@@ -28,7 +28,7 @@
 
 \begin{document}
 
-\title{Jal-Drishti: An AI-Enabled Geospatial System for Village Pond Site Selection and Catchment Delineation}
+\title{Bhagiratha: An AI-Enabled Geospatial System for Village Pond Site Selection and Catchment Delineation}
 
 \author{Rahul Seera}
 \affiliation{%
@@ -40,7 +40,7 @@
 \email{rahulseera.r2@gmail.com}
 
 \begin{abstract}
-Rural communities across semi-arid and monsoon-dependent regions face critical water security challenges, where unscientific excavation of farm ponds frequently leads to dry reservoirs or catastrophic overflow. This paper presents \textbf{Jal-Drishti}, an end-to-end web-based geospatial planning system that automates the identification of optimal pond locations, catchment delineation, and hydraulic reservoir dimensioning. The system processes both raster Digital Elevation Models (SRTM 30m) and vector topographic contour maps (KML/KMZ), applying SciPy 2D Delaunay triangulation to interpolate continuous elevation fields, followed by Priority-Flood depression filling and D8 steepest-descent flow routing to calculate upstream flow accumulation. An interior convergence heuristic automatically discovers the natural hydrological pour point without hardcoded priors. By synthesizing delineated catchment areas with 10-year historical precipitation data from Open-Meteo reanalysis, the system computes expected runoff via the Rational Method ($Q = C \cdot I \cdot A$) and sizes pond depth, surface footprint, and capacity under seasonal capture constraints. The application is implemented as an asynchronous modular monolith using FastAPI, Rasterio, PySheds, GeoAlchemy2, PostgreSQL/PostGIS, and Leaflet.js, incorporating local response caching, automatic watchdog process supervision, and resilient fallback modes for low-resource shared container environments. Experimental validation on real-world topographic datasets in Chhattisgarh proves generalization across arbitrary vector contours, compressed KMZ archives, and user-drawn map areas, delivering comprehensive hydrological analytics in sub-second to sub-minute latencies.
+Rural communities across semi-arid and monsoon-dependent regions face critical water security challenges, where unscientific excavation of farm ponds frequently leads to dry reservoirs or catastrophic overflow. This paper presents \textbf{Bhagiratha}, an end-to-end web-based geospatial planning system that automates the identification of optimal pond locations, catchment delineation, and hydraulic reservoir dimensioning. The system processes both raster Digital Elevation Models (SRTM 30m) and vector topographic contour maps (KML/KMZ), applying SciPy 2D Delaunay triangulation to interpolate continuous elevation fields, followed by Priority-Flood depression filling and D8 steepest-descent flow routing to calculate upstream flow accumulation. An interior convergence heuristic automatically discovers the natural hydrological pour point without hardcoded priors. By synthesizing delineated catchment areas with 10-year historical precipitation data from Open-Meteo reanalysis, the system computes expected runoff via the Rational Method ($Q = C \cdot I \cdot A$) and sizes pond depth, surface footprint, and capacity under seasonal capture constraints. The application is implemented as an asynchronous modular monolith using FastAPI, Rasterio, PySheds, GeoAlchemy2, PostgreSQL/PostGIS, and Leaflet.js, incorporating local response caching, automatic watchdog process supervision, and resilient fallback modes for low-resource shared container environments. Experimental validation on real-world topographic datasets in Chhattisgarh proves generalization across arbitrary vector contours, compressed KMZ archives, and user-drawn map areas, delivering comprehensive hydrological analytics in sub-second to sub-minute latencies.
 \end{abstract}
 
 \keywords{Hydrological Modeling, Catchment Delineation, D8 Flow Direction, Rational Method, Village Pond Planning, GIS, FastAPI, Leaflet.js}
@@ -56,11 +56,11 @@ Water conservation in rural agricultural ecosystems constitutes the foundation o
     \item \textbf{Hydraulic Mismatch:} Failing to correlate catchment area with historical precipitation distributions leads to severely under-dimensioned ponds that overflow or over-dimensioned excavations that fail to fill.
 \end{enumerate}
 
-To bridge this operational gap, we developed \textbf{Jal-Drishti}, an automated decision-support system that combines modern geospatial hydrology, automated flow-routing algorithms, meteorological data integration, and an interactive browser-based GIS interface. The primary objective is to enable non-expert local administrators to click on a map, draw a candidate land area, or upload a contour map, and instantly receive: (1) the scientifically optimal pond location, (2) the delineated catchment boundary, (3) the expected harvestable water volume, and (4) recommended excavation dimensions.
+To bridge this operational gap, we developed \textbf{Bhagiratha}, an automated decision-support system that combines modern geospatial hydrology, automated flow-routing algorithms, meteorological data integration, and an interactive browser-based GIS interface. The primary objective is to enable non-expert local administrators to click on a map, draw a candidate land area, or upload a contour map, and instantly receive: (1) the scientifically optimal pond location, (2) the delineated catchment boundary, (3) the expected harvestable water volume, and (4) recommended excavation dimensions.
 
 \section{System Architecture}
 \label{sec:arch}
-In accordance with the High-Level Design (HLD), Jal-Drishti is architected as an asynchronous \textbf{modular monolith}. A monolithic deployment avoids inter-service network serialization overhead on memory-constrained deployments, while strict internal encapsulation partitions the codebase into four decoupled subsystems: (1) Client Presentation Layer, (2) API Coordination Layer, (3) Geospatial \& Hydrological Processing Engine, and (4) Data \& Persistence Layer.
+In accordance with the High-Level Design (HLD), Bhagiratha is architected as an asynchronous \textbf{modular monolith}. A monolithic deployment avoids inter-service network serialization overhead on memory-constrained deployments, while strict internal encapsulation partitions the codebase into four decoupled subsystems: (1) Client Presentation Layer, (2) API Coordination Layer, (3) Geospatial \& Hydrological Processing Engine, and (4) Data \& Persistence Layer.
 
 \begin{figure*}[t]
   \centering
@@ -82,7 +82,7 @@ In accordance with the High-Level Design (HLD), Jal-Drishti is architected as an
       \textit{PostgreSQL + PostGIS (Spatial Geometries) $\cdot$ Rounded Grid Cache $\cdot$ In-Memory Fallback $\cdot$ Watchdog Daemon}
     }
   }
-  \caption{End-to-End System Architecture of Jal-Drishti, illustrating asynchronous parallel dispatch of terrain and precipitation pipelines, centralized recommendation sizing, and persistence.}
+  \caption{End-to-End System Architecture of Bhagiratha, illustrating asynchronous parallel dispatch of terrain and precipitation pipelines, centralized recommendation sizing, and persistence.}
   \label{fig:arch}
 \end{figure*}
 
@@ -195,7 +195,7 @@ Process Supervision \& Watchdog & \texttt{scripts/start\_server.sh} \newline \te
 \label{tab:csd_mapping}
 \begin{tabular}{@{}p{3.5cm}p{5cm}p{7.5cm}@{}}
 \toprule
-\textbf{CSD Theme} & \textbf{Course Topic} & \textbf{Application in Jal-Drishti} \\
+\textbf{CSD Theme} & \textbf{Course Topic} & \textbf{Application in Bhagiratha} \\
 \midrule
 Concurrency \& Latency & Asynchronous I/O \& Event Loops & \texttt{asyncio.create\_task} dispatches terrain DEM downloads and meteorological API queries concurrently, achieving a $45\%$ latency reduction over sequential calls. \\
 \midrule

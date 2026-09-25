@@ -1,5 +1,5 @@
 # YouTube 5-Minute Demo Video Script & Walkthrough
-**System**: Jal-Drishti: AI-based Village Pond Planning & Catchment Delineation System  
+**System**: Bhagiratha: AI-based Village Pond Planning & Catchment Delineation System  
 **Presenter**: Rahul Seera (IIT Bhilai)  
 **Target Duration**: 4 minutes 45 seconds (Max: 5:00)
 
@@ -9,7 +9,7 @@
 
 | Timestamp | Segment | Visual on Screen | Key Spoken Points |
 |---|---|---|---|
-| **0:00 - 0:45** | **1. Introduction & Motivation** | Full-screen web UI at `http://10.1.75.53:3247/` (or `http://localhost:8000/`), zooming into title and satellite basemap. | Problem statement: Rural water security, unscientific pond excavation. Introduce Jal-Drishti as an automated decision-support system. |
+| **0:00 - 0:45** | **1. Introduction & Motivation** | Full-screen web UI at `http://10.1.75.53:3247/` (or `http://localhost:8000/`), zooming into title and satellite basemap. | Problem statement: Rural water security, unscientific pond excavation. Introduce Bhagiratha as an automated decision-support system. |
 | **0:45 - 1:30** | **2. Architecture & Algorithms** | Architecture diagram or Info Modal (`ℹ️ Info`), showing 4-step pipeline: Contour $\to$ DEM $\to$ D8 Flow Routing $\to$ Rational Runoff. | Explain Priority-Flood depression filling, D8 steepest descent, flow accumulation, and the interior convergence heuristic. |
 | **1:30 - 2:45** | **3. Live Demo — Contour Map Upload & Auto Site Selection** | Upload `contours_1m.kml` via drag-and-drop. Show progress bar, then the rendered cyan catchment basin and pulsing green marker. | Highlight auto-discovery: 1,355 contours parsed, 267–298m relief, suggested pond at (21.24185, 81.28689), 3.87 km² basin, 1.27M m³ expected water volume. |
 | **2:45 - 3:30** | **4. Live Demo — Land Area Selection Mode** | Switch to **"📐 Land Area Selection"** tab. Draw a bounding box on the map. Click **"Discover Pond Site & Analyze Basin"**. | Show that users can select any candidate agricultural area. The system extracts topography, auto-discovers optimal drainage outlet, and sizes reservoir. |
@@ -21,11 +21,11 @@
 ## Detailed Minute-by-Minute Narration Script
 
 ### [0:00 - 0:45] 1. Introduction & Problem Statement
-> *"Hello everyone! My name is Rahul Seera, and today I am presenting **Jal-Drishti**, an AI-enabled geospatial decision-support system for village pond planning and automated catchment delineation.*  
+> *"Hello everyone! My name is Rahul Seera, and today I am presenting **Bhagiratha**, an AI-enabled geospatial decision-support system for village pond planning and automated catchment delineation.*  
 >  
 > *Under rural water conservation initiatives such as Mission Amrit Sarovar, thousands of farm ponds are excavated annually. However, without scientific hydrological analysis, ponds are often excavated in arbitrary locations outside natural drainage paths, resulting in dry reservoirs or failure during monsoons.  
 >  
-> *Jal-Drishti solves this problem end-to-end. By combining digital elevation models, vector contour interpolation, D8 hydrological flow routing, and 10-year historical precipitation reanalysis, our system automatically determines the scientifically optimal pond location, delineates the contributing catchment basin, computes harvestable runoff volume, and sizes the reservoir for 70% seasonal capture efficiency."*
+> *Bhagiratha solves this problem end-to-end. By combining digital elevation models, vector contour interpolation, D8 hydrological flow routing, and 10-year historical precipitation reanalysis, our system automatically determines the scientifically optimal pond location, delineates the contributing catchment basin, computes harvestable runoff volume, and sizes the reservoir for 70% seasonal capture efficiency."*
 
 ---
 
@@ -97,4 +97,4 @@
 >  
 > *Our automated test suite rigorously validates edge cases including compressed KMZ archives, empty files, malformed XML, and spatial caching.  
 >  
-> *In summary, Jal-Drishti bridges hydrological science and rural administrative practice, providing a fast, resilient, and scientific solution for village water security. Thank you!"*
+> *In summary, Bhagiratha bridges hydrological science and rural administrative practice, providing a fast, resilient, and scientific solution for village water security. Thank you!"*
