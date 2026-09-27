@@ -495,6 +495,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // Sizing Parameters
     document.getElementById("res-pond-depth").textContent = `${rec.depth_m || 4.5} m`;
     document.getElementById("res-pond-area").textContent = `${Math.round(rec.surface_area_m2 || 0).toLocaleString()} m²`;
+    document.getElementById("res-pond-area-ha").textContent = `≈ ${((rec.surface_area_m2 || 0) / 10000).toFixed(1)} Hectares footprint`;
+    const depth = rec.depth_m || 0;
+    document.getElementById("res-pond-depth-note").textContent =
+      depth >= 4.5 ? "Maximum for unlined earthen banks" : depth <= 2.5 ? "Minimum anti-evaporation depth" : "Scaled to storage volume (2.5–4.5 m)";
     document.getElementById("res-pond-capacity").textContent = `${Math.round(rec.capacity_m3 || 0).toLocaleString()} m³`;
 
     if (score >= 80) {
@@ -520,6 +524,9 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("res-monsoon-rain").textContent = `${monsoon} mm (${((monsoon / totalRain) * 100).toFixed(1)}%)`;
     document.getElementById("res-non-monsoon-rain").textContent = `${nonMonsoon} mm (${((nonMonsoon / totalRain) * 100).toFixed(1)}%)`;
 
+    document.getElementById("res-rainfall-source").textContent =
+      rainfall.data_years > 0 ? `Open-Meteo ${rainfall.data_years}-Yr Historical Archive` : "Regional Climate Baseline";
+
     renderRainfallChart(monsoon, nonMonsoon);
 
     // Warnings
@@ -542,9 +549,31 @@ document.addEventListener("DOMContentLoaded", () => {
     catchmentLayer.clearLayers();
     if (pondMarker) map.removeLayer(pondMarker);
 
-    // 2. Add Catchment GeoJSON Polygon
+    const areaKm2 = data.catchment_area_km2 ?? data.terrain?.area_km2 ?? 0;
+    const volumeM3 = data.expected_water_volume_m3 ?? data.recommendation?.runoff_m3 ?? 0;
+
+    // 2. Add Catchment GeoJSON Polygon, labelled on the map with its area and runoff volume
     if (data.catchment_polygon && data.catchment_polygon.coordinates && data.catchment_polygon.coordinates.length > 0) {
       catchmentLayer.addData(data.catchment_polygon);
+      catchmentLayer.eachLayer((layer) => {
+        layer.bindTooltip(
+          `<strong>Catchment basin</strong><br>Area: ${areaKm2.toFixed(4)} km²<br>Expected water volume: ${Math.round(volumeM3).toLocaleString()} m³`,
+          { sticky: true }
+        );
+      });
+    }
+
+    // 2b. Show the analysed land parcel (also when the box was typed in, not dragged)
+    const b = data.selected_bounds;
+    if (b) {
+      if (selectionBoxLayer) map.removeLayer(selectionBoxLayer);
+      selectionBoxLayer = L.rectangle([[b.min_lat, b.min_lon], [b.max_lat, b.max_lon]], {
+        color: "#f59e0b",
+        weight: 2,
+        dashArray: "6, 6",
+        fillColor: "#f59e0b",
+        fillOpacity: 0.15,
+      }).addTo(map);
     }
 
     // 3. Add Suggested Pond Marker
@@ -562,8 +591,10 @@ document.addEventListener("DOMContentLoaded", () => {
         <table class="popup-table">
           <tr><td>Latitude:</td><td><strong>${pond.lat.toFixed(6)}° N</strong></td></tr>
           <tr><td>Longitude:</td><td><strong>${pond.lon.toFixed(6)}° E</strong></td></tr>
+          <tr><td>Catchment Area:</td><td><strong>${areaKm2.toFixed(4)} km²</strong></td></tr>
+          <tr><td>Expected Water Volume:</td><td><strong>${Math.round(volumeM3).toLocaleString()} m³</strong></td></tr>
           <tr><td>Recommended Depth:</td><td><strong>${data.recommendation?.depth_m || 4.5} m</strong></td></tr>
-          <tr><td>Planned Capacity:</td><td><strong>${(data.recommendation?.capacity_m3 || 0).toLocaleString()} m³</strong></td></tr>
+          <tr><td>Planned Capacity:</td><td><strong>${Math.round(data.recommendation?.capacity_m3 || 0).toLocaleString()} m³</strong></td></tr>
         </table>
       `).openPopup();
     }

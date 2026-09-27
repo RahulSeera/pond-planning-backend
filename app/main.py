@@ -46,6 +46,7 @@ from app.modules.dem_from_contours import contours_to_grid, write_grid_to_geotif
 from app.modules.catchment import find_pond_site, catchment_to_geojson
 from app.modules.area_analysis import analyze_land_area
 from app.modules.village_search import search_villages
+from app.heavy_jobs import run_heavy, ServerBusyError
 
 START_TIME = time.time()
 DB_IS_AVAILABLE = False
@@ -118,6 +119,11 @@ static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 if not os.path.exists(static_dir):
     os.makedirs(static_dir, exist_ok=True)
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+
+@app.exception_handler(ServerBusyError)
+async def _server_busy_handler(request, exc):
+    return JSONResponse(status_code=503, content={"detail": str(exc)}, headers={"Retry-After": "15"})
 
 
 @app.on_event("startup")
@@ -393,42 +399,22 @@ async def analyze_contour(contour_map: UploadFile = File(...)):
 
     file_bytes = await contour_map.read()
 
-    # Step 1: parse contour lines. Parsing, interpolation and flow routing are
-    # CPU-bound, so they run in worker threads — keeps the event loop (and the
-    # watchdog's /api/health probe) responsive during a large upload.
+    # Steps 1-5 (parse, interpolate, route flow, pick site, polygonize) are CPU- and
+    # memory-heavy, so they run as ONE job in the single heavy-job slot: on the
+    # 512 MiB / 1-CPU container two overlapping jobs were OOM-killed (see heavy_jobs.py).
     try:
-        contours = await asyncio.to_thread(parse_contours, file_bytes, filename)
+        job = await run_heavy(_contour_job, file_bytes, filename)
     except ContourParseError as e:
         raise HTTPException(status_code=400, detail=f"Could not parse contour file: {e}")
-
-    elevations = [c["elevation"] for c in contours]
-
-    # Step 2-3: interpolate to grid and write as GeoTIFF
-    try:
-        grid_data = await asyncio.to_thread(contours_to_grid, contours)
     except InterpolationError as e:
         raise HTTPException(status_code=422, detail=f"Could not build a terrain grid from this file: {e}")
-
-    tmp_dir = tempfile.mkdtemp(prefix="contour_dem_")
-    tif_path = os.path.join(tmp_dir, "dem.tif")
-    write_grid_to_geotiff(grid_data, tif_path)
-
-    # Step 4-5: run flow analysis and auto-discover site
-    try:
-        result = await asyncio.to_thread(find_pond_site, tif_path)
-    except Exception as e:
+    except ServerBusyError:
+        raise
+    except Exception:
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Terrain analysis failed on this contour map.")
-    finally:
-        try:
-            if os.path.exists(tif_path):
-                os.remove(tif_path)
-            os.rmdir(tmp_dir)
-        except OSError:
-            pass
-
-    polygon = catchment_to_geojson(result["grid"], result["catchment_mask"])
+    contours_count, elevations, result, polygon = job["count"], job["elevations"], job["result"], job["polygon"]
 
     if result.get("touches_edge"):
         warnings.append(
@@ -461,7 +447,7 @@ async def analyze_contour(contour_map: UploadFile = File(...)):
 
     return ContourAnalysisResponse(
         source_filename=filename,
-        contour_lines_parsed=len(contours),
+        contour_lines_parsed=contours_count,
         elevation_range_m={"min": min(elevations), "max": max(elevations)},
         suggested_pond_site=PondSite(lat=result["pour_lat"], lon=result["pour_lon"]),
         catchment_area_km2=result["area_km2"],
@@ -487,6 +473,32 @@ async def sample_contour():
         raise HTTPException(status_code=404, detail="Sample contour file not installed on this server.")
     return FileResponse(SAMPLE_CONTOUR_FILE, media_type="application/vnd.google-earth.kml+xml",
                         filename="contours_1m.kml")
+
+
+def _contour_job(file_bytes: bytes, filename: str) -> dict:
+    """Synchronous contour pipeline, run in a worker thread under run_heavy()."""
+    contours = parse_contours(file_bytes, filename)
+    elevations = [c["elevation"] for c in contours]
+    count = len(contours)
+    grid_data = contours_to_grid(contours)
+    del contours
+    tmp_dir = tempfile.mkdtemp(prefix="contour_dem_")
+    tif_path = os.path.join(tmp_dir, "dem.tif")
+    try:
+        write_grid_to_geotiff(grid_data, tif_path)
+        del grid_data
+        result = find_pond_site(tif_path)
+        polygon = catchment_to_geojson(result["grid"], result["catchment_mask"])
+    finally:
+        try:
+            if os.path.exists(tif_path):
+                os.remove(tif_path)
+            os.rmdir(tmp_dir)
+        except OSError:
+            pass
+    # Keep only what the response needs; drop the grid/flow rasters now.
+    slim = {k: result[k] for k in ("pour_lat", "pour_lon", "area_km2", "avg_slope", "touches_edge")}
+    return {"count": count, "elevations": elevations, "result": slim, "polygon": polygon}
 
 
 # ---------- Village Search & History ----------

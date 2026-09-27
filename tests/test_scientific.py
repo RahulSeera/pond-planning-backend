@@ -172,3 +172,39 @@ def test_contour_demo_matches_live_rainfall_when_network_blocked(monkeypatch):
     assert data["rainfall"]["seasonal"]["monsoon_mm"] == 1251.4
     assert abs(data["expected_water_volume_m3"] - 1713241.7) < 1.0
     assert any("bundled Open-Meteo archive" in w for w in data["warnings"])
+
+
+def test_heavy_jobs_never_overlap_and_queue_times_out(monkeypatch):
+    """Admission control: on the 512 MiB / 1-CPU container, overlapping heavy jobs
+    were OOM-killed, so at most one may run; a job that waits too long gets 503."""
+    import asyncio
+    import threading
+    import time
+    import app.heavy_jobs as hj
+
+    active, peak = [0], [0]
+    lock = threading.Lock()
+
+    def slow_job():
+        with lock:
+            active[0] += 1
+            peak[0] = max(peak[0], active[0])
+        time.sleep(0.2)
+        with lock:
+            active[0] -= 1
+        return "done"
+
+    async def run_three():
+        return await asyncio.gather(*(hj.run_heavy(slow_job) for _ in range(3)))
+
+    assert asyncio.run(run_three()) == ["done"] * 3
+    assert peak[0] == 1
+
+    monkeypatch.setattr(hj, "QUEUE_TIMEOUT_S", 0.05)
+
+    async def overloaded():
+        return await asyncio.gather(hj.run_heavy(slow_job), hj.run_heavy(slow_job), return_exceptions=True)
+
+    results = asyncio.run(overloaded())
+    assert results.count("done") == 1
+    assert any(isinstance(r, hj.ServerBusyError) for r in results)

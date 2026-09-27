@@ -1,0 +1,72 @@
+{
+ "server_pid": 248489,
+ "idle_rss_mb": 290.5,
+ "peak_rss_mb": 329.7,
+ "results": [
+  {
+   "scenario": "health",
+   "concurrency": 20,
+   "requests": 200,
+   "errors": 0,
+   "p50_s": 0.087,
+   "p95_s": 0.279,
+   "max_s": 0.573,
+   "throughput_rps": 162.96
+  },
+  {
+   "scenario": "point (cached)",
+   "concurrency": 20,
+   "requests": 200,
+   "errors": 0,
+   "p50_s": 0.133,
+   "p95_s": 0.42,
+   "max_s": 0.729,
+   "throughput_rps": 107.05,
+   "cold_first_call_s": 17.52,
+   "cold_status": 200
+  },
+  {
+   "scenario": "contour",
+   "concurrency": 1,
+   "requests": 4,
+   "errors": 0,
+   "p50_s": 0.841,
+   "p95_s": 1.067,
+   "max_s": 1.067,
+   "throughput_rps": 1.12
+  },
+  {
+   "scenario": "contour",
+   "concurrency": 2,
+   "requests": 4,
+   "errors": 0,
+   "p50_s": 1.687,
+   "p95_s": 1.762,
+   "max_s": 1.762,
+   "throughput_rps": 1.16
+  },
+  {
+   "scenario": "contour",
+   "concurrency": 4,
+   "requests": 4,
+   "errors": 0,
+   "p50_s": 7.097,
+   "p95_s": 9.953,
+   "max_s": 9.953,
+   "throughput_rps": 0.4
+  },
+  {
+   "scenario": "health during 4x contour",
+   "concurrency": 1,
+   "requests": 29,
+   "errors": 0,
+   "p50_s": 0.07,
+   "p95_s": 0.418,
+   "max_s": 0.57,
+   "throughput_rps": null
+  }
+ ],
+ "host": "stu72_sys3 (1-CPU cgroup, 512 MiB memory limit)",
+ "date": "2026-09-27",
+ "note": "Load generator ran on the same container (shares the single CPU); after admission control. Before admission control the server was OOM-killed at contour concurrency 2."
+}

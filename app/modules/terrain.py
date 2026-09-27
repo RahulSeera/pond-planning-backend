@@ -17,6 +17,7 @@ import tempfile
 
 from app.schemas import TerrainResult
 from app.modules.dem_fetch import fetch_dem_tile
+from app.heavy_jobs import run_heavy, ServerBusyError
 from app.modules.catchment import delineate_catchment, catchment_to_geojson
 
 
@@ -50,7 +51,9 @@ async def get_catchment(lat: float, lon: float) -> tuple[TerrainResult, list[str
             # delineate_catchment is CPU-bound (flow routing over the whole tile), so it
             # runs in a worker thread to keep the event loop responsive.
             try:
-                result = await asyncio.to_thread(delineate_catchment, dem_path, lat, lon)
+                result = await run_heavy(delineate_catchment, dem_path, lat, lon)
+            except ServerBusyError:
+                raise
             except Exception as e:
                 raise TerrainDataError(f"Catchment computation failed: {e}")
             polygon = catchment_to_geojson(result["grid"], result["catchment_mask"])

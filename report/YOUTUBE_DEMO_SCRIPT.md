@@ -1,129 +1,87 @@
-# YouTube 5-Minute Demo Video Script & Walkthrough
-**System**: Bhagiratha: AI-based Village Pond Planning & Catchment Delineation System
-**Presenter**: Rahul Seera (IIT Bhilai)
-**Target Duration**: 4 minutes 45 seconds (Max: 5:00)
+# Bhagiratha: YouTube Demo Script (≈ 5 minutes)
+
+**Presenter:** Rahul Seera (IIT Bhilai) · **Target length:** 4:45–5:00
+**Where to record:** the live server `http://10.1.75.53:3247/` (or your laptop at `http://127.0.0.1:8000/`); both give identical numbers.
 
 ---
 
-## Before You Record — Which Server?
+## Before you press record
 
-The numbers you will see depend on whether live rainfall data is reachable:
+1. Open the app and click **✨ Load Sample Demo** once (a rehearsal; it takes about 1 s).
+2. Click **🧹 Clear Map** (map toolbar) so you start from a clean map.
+3. Have ready: `tests/sample_data/contours_1m.kml`, a terminal in the project folder, and `report/final_report.pdf`.
+4. Browser zoom 100 %, full screen, notifications off.
 
-| Where you record | Rainfall source | What the contour demo shows |
-|---|---|---|
-| **Local machine** (`http://127.0.0.1:8000/`) | Live Open-Meteo 10-year archive (or the bundled copy if the daily quota is used up) | 1,415 mm/yr, **1,251 mm monsoon**, runoff **1,713,242 m³** |
-| **Campus container** (`http://10.1.75.53:3247/`) | Bundled copy of the same Open-Meteo archive (Open-Meteo is blocked from the container) | **Same numbers**, plus a yellow note saying bundled archive data was used |
+### Numbers you will see (all verified)
 
-Both give identical results, so you can record on either. On the container, mention the yellow note in segment 6: it shows the system is honest about where its data comes from.
-
-### Reference numbers (`contours_1m.kml`, verified 27 Sep 2026)
-
-| Quantity | Value |
+| Demo step | Result |
 |---|---|
-| Contour lines / relief | 1,355 lines, 267–298 m |
-| Suggested pond site | 21.24171° N, 81.28692° E |
-| Catchment area | 3.9116 km² (≈ 391 ha) |
-| Average slope | 3.99 % |
-| Annual / monsoon rainfall | 1,415.2 mm / 1,251.4 mm (Open-Meteo 2016–2025) |
-| Expected runoff (Q) | 1,713,242 m³ |
-| Pond depth | 4.5 m |
-| Surface area | 266,504 m² |
-| Target capacity (70 %) | 1,199,269 m³ |
-| Suitability | 98 / 100 (Highly Suitable) |
+| Contour map: pond site | 21.24171° N, 81.28692° E |
+| Contour map: catchment / slope | 3.9116 km² (≈ 391 ha) / 3.99 % |
+| Rainfall (Open-Meteo, 2016–2025) | 1,415.2 mm per year, 1,251.4 mm in the monsoon |
+| Expected water volume | **1,713,242 m³** |
+| Pond | 4.5 m deep · 266,504 m² (≈ 26.7 ha) · capacity 1,199,269 m³ · score 98 |
+| Land area box 21.235–21.255 N, 81.278–81.298 E | site 21.23611, 81.27806 · catchment 7.089 km² · **3,104,911 m³** |
 
 ---
 
-## Video Outline & Timeline
+## Timeline
 
-| Timestamp | Segment | Visual on Screen | Key Spoken Points |
-|---|---|---|---|
-| **0:00 - 0:45** | **1. Introduction & Motivation** | Full-screen web UI, zooming into the title and satellite basemap. | The problem: rural water security and ponds dug in arbitrary places. Bhagiratha as an automated decision-support system. |
-| **0:45 - 1:30** | **2. Architecture & Algorithms** | Click **ℹ️ Info** (top right) to open the architecture & formula guide. | Contour → DEM → Priority-Flood → latitude-corrected D8 → accumulation → pond site → Rational Method. |
-| **1:30 - 2:45** | **3. Live Demo — Contour Map** | **🗺️ Contour Map (KML)** tab → drag in `tests/sample_data/contours_1m.kml` → **⚡ Run Contour Flow Analysis**. (Or click **✨ Load Sample Demo** in the header, which runs the same file.) | 1,355 contours, 267–298 m relief, auto-selected site, 3.91 km² catchment, runoff and sizing. |
-| **2:45 - 3:30** | **4. Live Demo — Land Area Selection** | **📐 Land Area Selection** tab → **Draw Area Box** tool on the map → drag a rectangle → **🔍 Discover Pond Site & Analyze Basin**. | The pond is always placed inside the drawn parcel; the catchment can extend upstream beyond it. Uses real SRTM 30 m terrain. |
-| **3:30 - 4:15** | **5. Rainfall, Sizing & Export** | Scroll the results panel: sizing, rainfall chart; click **📥 Export GeoJSON Basin**. | Q = C·I·A with C = 0.35, 70 % capture, depth 2.5–4.5 m, GeoJSON export for QGIS. |
-| **4:15 - 5:00** | **6. Resilience, Testing & Conclusion** | Terminal: `.venv/bin/pytest tests/` (27 passed), `curl http://10.1.75.53:3247/api/health`. | Watchdog, file-mode fallback, rainfall baseline, warnings instead of silent failures; summary. |
-
----
-
-## Detailed Narration Script
-
-### [0:00 - 0:45] 1. Introduction & Problem Statement
-> *"Hello everyone! My name is Rahul Seera, and today I'm presenting **Bhagiratha**, a geospatial decision-support system for village pond planning.*
->
-> *Under programmes like Mission Amrit Sarovar, thousands of village ponds are dug every year. Without hydrological analysis, many end up outside natural drainage paths, so they stay dry, or they're undersized and breach during the monsoon.*
->
-> *Bhagiratha solves this end to end. From elevation data and ten years of rainfall history, it finds where water naturally collects, outlines the catchment that drains there, estimates how much water the monsoon will bring, and sizes the pond to hold seventy percent of it."*
+| Time | Segment | On screen |
+|---|---|---|
+| 0:00–0:35 | 1. Problem | App home screen, satellite map |
+| 0:35–1:15 | 2. How it works | **ℹ️ Info** modal |
+| 1:15–2:15 | 3. Land area selection (the core requirement) | **📐 Land Area Selection** |
+| 2:15–3:05 | 4. Contour map analysis | **🗺️ Contour Map (KML)** |
+| 3:05–3:35 | 5. Being honest about the result | zoom on the marker, satellite view |
+| 3:35–4:25 | 6. Speed, load & limits of the server | terminal + report table |
+| 4:25–5:00 | 7. Wrap-up | app + report |
 
 ---
 
-### [0:45 - 1:30] 2. Architecture & Hydrological Algorithm
-> *(Click **ℹ️ Info** in the top-right corner.)*
->
-> *"Bhagiratha is an asynchronous modular monolith: FastAPI on the backend, PySheds, Rasterio and SciPy for terrain analysis, PostgreSQL with PostGIS for storage, and Leaflet.js in the browser.*
->
-> *The pipeline has four stages:*
-> *1. **Terrain input**: a clicked point, a drawn land parcel, or an uploaded KML or KMZ contour map. Contour points are interpolated into a continuous elevation grid using SciPy's Delaunay-based linear interpolation.*
-> *2. **Conditioning**: the Priority-Flood algorithm fills artificial pits, and flat areas are given a slight gradient so water always has somewhere to flow.*
-> *3. **D8 flow routing**: every cell drains to its steepest downhill neighbour. Distances are measured in real metres, correcting for the fact that a degree of longitude shrinks with latitude. Chaining these directions gives flow accumulation: how many upstream cells drain through each point.*
-> *4. **Site selection**: the cell with the highest accumulation, away from the map edges, is where the most water converges, so that's where the pond goes."*
+## Narration
 
----
+### 1 · Problem (0:00–0:35)
+> "Hi, I'm Rahul Seera from IIT Bhilai, and this is **Bhagiratha**, an AI-based village pond planning system.
+> Village ponds are often dug wherever land happens to be free, not where rainwater actually collects. So many stay dry, or they're too small and breach in the monsoon.
+> Bhagiratha answers three questions from terrain and ten years of rainfall: **where** should the pond go, **how much water** will reach it, and **how big** should it be."
 
-### [1:30 - 2:45] 3. Demonstration: Contour Map Analysis
-> *(Switch to **🗺️ Contour Map (KML)**. Drag `tests/sample_data/contours_1m.kml` into the upload zone and click **⚡ Run Contour Flow Analysis**.)*
->
-> *"Here's a real one-metre contour survey of a rural watershed near Durg–Bhilai in Chhattisgarh.*
->
-> *In about three seconds, the backend parses 1,355 contour lines spanning 31 metres of relief, builds the elevation grid, and routes flow across the whole terrain.*
->
-> *On the map:*
-> *- The cyan outline is the catchment: all the land whose runoff drains to the pond site.*
-> *- The pulsing green marker is the automatically chosen pond site, at **21.2417 north, 81.2869 east**.*
-> *- On the right: a catchment of **3.91 square kilometres**, about 391 hectares, with an average slope of **3.99 percent**, gentle enough for safe excavation.*
-> *- Expected monsoon runoff is **1.71 million cubic metres**, and the suitability score is **98 out of 100**."*
->
-> *(If recording on the campus container, add: "The yellow note says the live rainfall service is blocked on the campus network, so the app used its bundled copy of the same Open-Meteo archive. Same real data, and it tells us where it came from.")*
+### 2 · How it works (0:35–1:15)
+*(Click **ℹ️ Info**.)*
+> "Under the hood: the browser is a Leaflet map. The backend is Python FastAPI.
+> First it gets an elevation grid, either real 30-metre satellite elevation data from OpenTopography, or by interpolating an uploaded contour map.
+> It fills artificial pits in the terrain, then works out, for every cell, which neighbour water flows to. That's the D8 algorithm, with distances corrected for latitude.
+> Counting how much water flows through each cell tells us where runoff converges. That's the pond site.
+> Then it traces the catchment uphill, takes ten years of monsoon rainfall from Open-Meteo, and computes runoff as Q = C × I × A, and sizes the pond to hold seventy percent of it."
+*(Close the modal.)*
 
----
+### 3 · Land area selection (1:15–2:15)
+*(Click **📐 Land Area Selection** → type South 21.235, North 21.255, West 81.278, East 81.298, or use **Draw Area Box** and drag → **🔍 Discover Pond Site & Analyze Basin**.)*
+> "This is the main requirement: selecting land on the map. Say the panchayat has this parcel available. I select it and click Discover.
+> The system downloads real elevation data around the parcel, so it also sees the land **upstream**, and finds the best drainage point **inside** my parcel." *(Results appear, ≈15–30 s.)*
+> "On the map: the dashed orange box is my parcel, the green marker is the suggested pond location, and the blue area is the catchment, all the land whose rain flows here. Notice it extends beyond my parcel, because water flows in from upstream.
+> The popup shows the catchment area, **7.09 square kilometres**, and the expected water volume, **about 3.1 million cubic metres**. The same numbers are in the panel on the right."
+*(Hover over the blue polygon to show its tooltip.)*
 
-> *(Zoom in on the marker in satellite view.)*
-> *"You'll notice the marker sits in the Shivnath river. That's where the most water converges, which is exactly what the algorithm looks for. But it only sees elevation: it doesn't know a river is already there, or who owns the land. So this is a screening result; a site visit and the authorities make the final decision. That's why the next mode matters."*
+### 4 · Contour map analysis (2:15–3:05)
+*(Click **🗺️ Contour Map (KML)** → drag in `contours_1m.kml` → **⚡ Run Contour Flow Analysis**. Or click **✨ Load Sample Demo**.)*
+> "The second input is a surveyed contour map, here a real one-metre survey near Durg with 1,355 contour lines.
+> In under a second, it's parsed, turned into an elevation grid, and analysed.
+> The catchment is **3.91 square kilometres**. Rainfall is **1,251 millimetres** in the monsoon. So the expected water volume is **1.71 million cubic metres**.
+> The recommended pond is **4.5 metres deep**, the safe limit for earthen banks, and it holds seventy percent of that water. Suitability score: 98."
+*(Scroll the panel: sizing and the rainfall chart.)*
 
----
+### 5 · Being honest about the result (3:05–3:35)
+*(Zoom in on the marker in satellite view.)*
+> "One thing I want to point out: this marker sits in the Shivnath river. That's correct hydrology, because the river is where the most water converges. But the algorithm only sees elevation. It doesn't know a river is already there, or who owns the land. So this is a **screening tool**: it narrows the search, and a site visit and the authorities make the final decision. That's exactly why the land-area mode matters: you restrict the search to land you actually have."
 
-### [2:45 - 3:30] 4. Demonstration: Land Area Selection
-> *(Click **📐 Land Area Selection**. Click the **Draw Area Box** tool on the map, drag a rectangle over farmland, then click **🔍 Discover Pond Site & Analyze Basin**.)*
->
-> *"Administrators often already know which land is available: say a panchayat plot. I draw a box around it and click Discover.*
->
-> *The system downloads real 30-metre SRTM elevation data around the plot, routes flow over the surrounding terrain, and picks the best drainage point **inside** the selected land. The catchment it shows can extend well beyond the plot, because water flows in from upstream.*
->
-> *Both the selected parcel and the natural catchment are overlaid on the satellite map."*
+### 6 · Speed, load & limits (3:35–4:25)
+*(Terminal: `.venv/bin/pytest tests/ -q` → 28 passed. Then show the performance table in the report, Table 4.)*
+> "The app runs on a campus server we were given: one CPU and 512 megabytes of memory.
+> We stress-tested it on that server: 446 requests, up to 20 at a time, zero errors.
+> Measuring on the real machine found three real problems. First, the math libraries started 120 threads on a single CPU, which made analysis take 45 seconds; we fixed it by pinning the threads, and now it's under one second. Second, two heavy analyses at once ran out of memory and crashed the server; now heavy jobs queue one at a time, and memory peaks at 330 megabytes. Third, the rainfall service is blocked from that server, so we bundle the real rainfall data for the region and the app always says which data it used.
+> A watchdog also checks the server every minute and restarts it if needed, and 28 automated tests guard the maths."
 
----
-
-### [3:30 - 4:15] 5. Rainfall, Hydraulic Sizing & GIS Export
-> *(Scroll down the results panel to the sizing section and rainfall chart.)*
->
-> *"For sizing, the system pulls ten years of daily rainfall from the Open-Meteo archive. Here the average is about **1,415 millimetres a year**, and **1,251** of that falls in the June-to-September monsoon, as the chart shows.*
->
-> *Runoff uses the Rational Method: Q equals C times I times A, with a runoff coefficient of 0.35 for rural farmland, the monsoon rainfall depth, and the catchment area. That gives about 1.7 million cubic metres.*
->
-> *To capture seventy percent of it, the recommended pond is **4.5 metres deep**, the safe limit for unlined earthen banks, with a capacity of about **1.2 million cubic metres**. For a catchment this large, that's really the harvesting potential, best split across several ponds or check dams.*
->
-> *Finally, **📥 Export GeoJSON Basin** downloads the catchment boundary for QGIS, ArcGIS or engineering tenders."*
-
----
-
-### [4:15 - 5:00] 6. Resilience, Testing & Conclusion
-> *(Show a terminal running `.venv/bin/pytest tests/` (27 passed), then `curl http://10.1.75.53:3247/api/health`.)*
->
-> *"The system runs on a shared campus container with a nearly full disk, no database server, and limited internet access, so resilience was designed in:*
-> *1. Without PostgreSQL, it switches to a file-based history automatically.*
-> *2. If the rainfall service is blocked, it uses a bundled copy of the real archive for this region, or a regional average elsewhere, and always says so on screen. A background probe and a circuit breaker mean no request ever waits on a blocked service.*
-> *3. Heavy terrain computation runs off the main event loop, so the health endpoint stays responsive, and a watchdog checks it every sixty seconds and restarts the server if needed, while cleaning temporary files and rotating logs.*
->
-> *Our 27 automated tests cover KMZ archives, malformed and empty files, real-format SRTM tiles, caching, the database layer, and the hydrology formulas themselves.*
->
-> *In short, Bhagiratha turns elevation and rainfall data into a practical, defensible pond plan in seconds. Thank you!"*
+### 7 · Wrap-up (4:25–5:00)
+> "So: select land on the map, and in seconds you get a suggested pond location, its catchment area and the expected water volume, all on the map, from a system that stays fast and honest on a small server.
+> Everything is in the report and on GitHub. Thank you!"

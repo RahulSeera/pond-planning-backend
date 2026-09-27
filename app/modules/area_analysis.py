@@ -19,6 +19,7 @@ from app.modules.catchment import find_pond_site, catchment_to_geojson
 from app.modules.recommendation import recommend
 from app.modules.rainfall import get_rainfall_stats, RainfallDataError, fallback_rainfall
 from app.modules.dem_fetch import fetch_dem_tile
+from app.heavy_jobs import run_heavy, ServerBusyError
 
 
 def generate_terrain_for_bounds(bounds: BoundingBox, out_path: str, resolution: int = 150) -> str:
@@ -98,7 +99,9 @@ async def analyze_land_area(bounds: BoundingBox) -> AreaAnalysisResponse:
     #    event loop (and the /api/health watchdog probe) responsive.
     search_bounds = (bounds.min_lon, bounds.min_lat, bounds.max_lon, bounds.max_lat)
     try:
-        result = await asyncio.to_thread(find_pond_site, tif_path, 0.08, search_bounds)
+        result = await run_heavy(find_pond_site, tif_path, 0.08, search_bounds)
+    except ServerBusyError:
+        raise
     except Exception as e:
         warnings.append(f"Terrain flow analysis failed ({e}); showing a rough whole-parcel estimate only.")
         # Fallback to center if terrain analysis fails

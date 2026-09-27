@@ -11,8 +11,8 @@ A step-by-step plan for demonstrating the project live, **about 10 minutes**. (F
 | 1 | Server is up | Open <http://10.1.75.53:3247/api/health> | `"status":"healthy"`, `"database":"standby (resilient persistent-file mode)"` |
 | 2 | Quick rehearsal | Open <http://10.1.75.53:3247/> → click **✨ Load Sample Demo** once | Result in ≈1 s; runoff **1,713,242 m³** |
 | 3 | Laptop terminal ready | `cd ~/Documents/semister7/pond-project` | — |
-| 4 | Tests pass | `.venv/bin/pytest tests/ -q` | `27 passed` |
-| 5 | Report open | `report/final_report.pdf` (or Overleaf) | 12 pages; Tables 1 and 2 are the mandatory ones |
+| 4 | Tests pass | `.venv/bin/pytest tests/ -q` | `28 passed` |
+| 5 | Report open | `report/final_report.pdf` (or Overleaf) | 9 pages (course template); performance is Table 4, CSD themes Table 3 |
 | 6 | Sample file handy | `tests/sample_data/contours_1m.kml` | 6.7 MB |
 
 **If the server is down:** the watchdog restarts it within 60 s. If it's still down after 2 minutes:
@@ -107,14 +107,14 @@ Click the same point again: it returns instantly (**rounded-grid cache**, ≈3�
 ## 6. System design / CSD points (2 min): terminal
 
 ```bash
-.venv/bin/pytest tests/ -q                       # 27 passed
+.venv/bin/pytest tests/ -q                       # 28 passed
 curl http://10.1.75.53:3247/api/health           # status, DB mode, uptime, memory
 ```
-Talking points (report Table 2):
+Talking points (report Table 3 and §6):
 1. **Concurrency**: terrain download and rainfall query run in parallel; heavy computation runs in worker threads, so `/api/health` answers in ~2 ms even mid-analysis.
 2. **Caching**: coordinates rounded to ~110 m cells; a repeat query drops from 13 s to 8 ms.
 3. **Resilience**: no database → file mode; rainfall service blocked → bundled real archive data, then a regional baseline. A background probe checks Open-Meteo every 5 minutes, and a circuit breaker means no request ever waits on a blocked service. The watchdog checks health every 60 s and restarts the server (with a startup grace period); a startup warm-up makes even the first request fast.
-4. **Resource limits (strong real-world story)**: "The container is limited to one CPU but reports 120 cores, so the math libraries started 120 threads fighting over one CPU. Analysis took 45 seconds. Pinning the thread pools to the real quota brought it to under 1 second." Also: a 99 %-full disk (temp-file pruning, log rotation) and bounded point decimation.
+4. **Resource limits (strong real-world story)**: "The container is limited to one CPU but reports 120 cores, so the math libraries started 120 threads fighting over one CPU. Analysis took 45 seconds. Pinning the thread pools to the real quota brought it to under 1 second." Second: "It has only 512 MB of memory. Our stress test found that two analyses at once ran out of memory and the kernel killed the server. Now heavy analyses queue one at a time, so 446 requests, up to 20 at once, ran with zero errors and memory peaked at 330 MB." Also: a 99 %-full disk (temp-file pruning, log rotation) and bounded point decimation.
 
 ---
 
@@ -129,10 +129,12 @@ Talking points (report Table 2):
 | A 26-hectare pond is huge. | Yes, for a 3.9 km² catchment that's the harvesting potential. In practice it would be split across several ponds or check dams (noted in the report's limitations). |
 | Why exclude the 8 % border? | Accumulation is distorted at DEM edges, where water "flows off the map". |
 | How do you know the catchment is right? | The polygon is valid and non-self-intersecting, its area matches the cell count (3.9114 vs 3.9116 km²), it doesn't touch the map edge, and regression tests check the maths. |
-| What changed in the final audit? | Latitude-corrected D8, pixel-centre georeferencing, real SRTM support (int16 crash), pond kept inside the drawn parcel, pour-point snapping, continuous scoring, no silent fallbacks, plus the container fixes. See report §8.2. |
+| What changed in the final audit? | Latitude-corrected D8, pixel-centre georeferencing, real SRTM support (int16 crash), pond kept inside the drawn parcel, pour-point snapping, continuous scoring, no silent fallbacks, plus the container fixes. See report §6 and §9. |
 | Does it pick the best point, or score the point I choose? | Both. **Point mode** scores the point you click (snapped ≤ 60 m to the drainage line). **Area mode** picks the best point inside the box you draw. **Contour mode** picks the best point on the whole map. "Best" = where the most runoff converges. |
-| Why is the pond in the river? | The river is the strongest convergence line, and the algorithm only sees elevation. It doesn't check existing water bodies, ownership, land use, soil, groundwater, or approvals (report §9.2). It's a screening tool; the final siting needs a field visit. Water-body exclusion via OpenStreetMap is the planned next step. |
+| Why is the pond in the river? | The river is the strongest convergence line, and the algorithm only sees elevation. It doesn't check existing water bodies, ownership, land use, soil, groundwater, or approvals (report §1.2 and §8). It's a screening tool; the final siting needs a field visit. Water-body exclusion via OpenStreetMap is the planned next step. |
 | So how would a real user use it? | Draw the available government/panchayat land in Area mode → get the best drainage point inside it → verify on the ground. Or click candidate spots in Point mode and compare their scores. |
+| What happens with many users? | Light requests (health, cached results, search) run concurrently: 20 at once with 0 errors. Heavy analyses queue one at a time, because the server has 1 CPU and 512 MB; running two at once gives no speed-up and ran out of memory. A request waiting over 120 s gets a clean "busy, retry" (HTTP 503). Numbers: report Table 4, `report/stress_results_sys3.json`. |
+| Why no load balancer? | With one CPU and 512 MB, a second instance would compete for the same CPU and memory. The queue is the effective load control on this machine. On a bigger machine you'd run more workers or instances behind Nginx and raise `BHAGIRATHA_HEAVY_SLOTS`. |
 | What if PostgreSQL is down? | A 3 s check at startup switches to file mode. It never crashes or returns a 500 because of the database. |
 | Is the bundled rainfall "fake"? | No. It's the same Open-Meteo 10-year archive, fetched with `scripts/build_rainfall_cache.py` and stored in `data/rainfall_cache.json` (19 points around Durg–Bhilai). The server uses the nearest point within 11 km and says so in the note. |
 | What about places outside the bundle? | Live Open-Meteo if reachable; otherwise a conservative regional average (1,150 mm/yr), with a warning. |

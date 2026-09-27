@@ -67,7 +67,7 @@ File mode: `data/analyses_history.json` (≤ 100 records, full sizing figures) +
 - **Open-Meteo** archive, `daily=precipitation_sum`, last 10 full years, 15 s timeout; if unreachable, bundled real archive data (`data/rainfall_cache.json`, 19 points around Durg–Bhilai, nearest within 11 km), else baseline 1150 mm/yr, 920 mm monsoon; always with a note. A background probe and circuit breaker keep requests from waiting on a blocked service.
 - **Nominatim**, only when curated matches are fewer than 8; 3 s timeout; failures ignored.
 
-## 7. CSD themes (report Table 2; functional component mapping is Table 1)
+## 7. CSD themes (report Table 3; requirements mapping is Table 1)
 
 | Theme | In Bhagiratha |
 |---|---|
@@ -113,7 +113,7 @@ File mode: `data/analyses_history.json` (≤ 100 records, full sizing figures) +
 | 18 | First request after a restart took ≈13 s (waiting on the blocked rainfall service) | Background reachability probe + startup warm-up → ≈0.9 s |
 
 Before → after on the reference file: site moved one cell (≈16 m); area 3.8715 → 3.9116 km² (+1.0 %). The old 1,273,723 m³ figure came from a 940 mm fallback rather than measured rainfall.
-Tests: **27 passed** (18 original + 9 new in `tests/test_scientific.py`).
+Tests: **28 passed** (18 original + 10 new in `tests/test_scientific.py`).
 
 ## 10. Deployment (container `stu72_sys3`)
 
@@ -124,7 +124,7 @@ Ubuntu 24.04, Python 3.12.3, port 3000 → 3247; `start_server.sh` + a 60 s `wat
 - **Point mode** *scores* a location you choose (snapped ≤ 60 m to the drainage line). **Area mode** *picks* the best point inside your parcel. **Contour mode** *picks* the best point on the whole map.
 - "Best" means **maximum runoff convergence**, nothing more. On the reference map that point is **in the Shivnath river channel**: hydrologically right, but a check-dam location, not a dug pond.
 - **Not checked:** existing rivers, canals and tanks; land ownership or encroachment; land use and structures; soil permeability and geology; groundwater and water quality; flood and dam safety; downstream rights and approvals; access, cost and community need.
-- The output is a **screening recommendation**; field verification and approvals from the revenue and irrigation authorities are required. Report §9.2.
+- The output is a **screening recommendation**; field verification and approvals from the revenue and irrigation authorities are required. Report §1.2 and §8.
 - **Future work:** OpenStreetMap water-body exclusion (the river and 4 canals are already mapped there), top-k multi-site ranking, land-use and soil layers, cadastral parcels, water balance.
 
 ## 12. Limitations

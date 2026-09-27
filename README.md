@@ -108,7 +108,7 @@ http://127.0.0.1:8000/
 ## Automated Verification & Test Suite
 
 ```bash
-# Run the full suite (27 tests):
+# Run the full suite (28 tests):
 .venv/bin/pytest tests/ -q
 
 # Individual groups:
@@ -125,7 +125,7 @@ Note: several tests query Open-Meteo live, and its free tier limits 10-year quer
 
 ## Scope of the Recommendation
 
-"Best site" means the point of **maximum runoff convergence**. The system does **not** check existing rivers, canals or tanks, land ownership, land use, soil, groundwater, flood safety, downstream rights, approvals, access or cost. On the sample map the selected point lies in the Shivnath river channel. Treat results as screening recommendations to be verified in the field (see `report/final_report.pdf` §9.2).
+"Best site" means the point of **maximum runoff convergence**. The system does **not** check existing rivers, canals or tanks, land ownership, land use, soil, groundwater, flood safety, downstream rights, approvals, access or cost. On the sample map the selected point lies in the Shivnath river channel. Treat results as screening recommendations to be verified in the field (see `report/final_report.pdf` §1.2 and §8).
 
 ---
 
