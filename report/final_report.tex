@@ -23,13 +23,19 @@
 \usepackage{tikz}
 \usetikzlibrary{arrows,positioning,fit,backgrounds,calc,shapes.misc}
 
+%% Hide the ACM Reference Format / DOI line (no DOI exists for a course report).
+\settopmatter{printacmref=false}
+%% Course report, not an ACM paper: drop the ACM permission paragraph and
+%% the "Manuscript submitted to ACM" footer.
+\makeatletter\@ACM@nonacmtrue\makeatother
+
 \begin{document}
 
 %% =================== TITLE & AUTHOR BLOCK =========================
 \title{Bhagiratha: AI-based Village Pond Planning System}
 \subtitle{CSD Assignment 1 -- Final Technical Report}
 
-\author{Rahul Seera}
+\author{Rahul Seera,12341980}
 \affiliation{%
   \institution{Indian Institute of Technology Bhilai}
   \city{Durg}
@@ -37,6 +43,7 @@
 \email{rahulseera.r2@gmail.com}
 
 \renewcommand{\shortauthors}{Seera}
+\authorsaddresses{} % no "Author's Contact Information" footnote
 
 %% =================== ABSTRACT ======================================
 \begin{abstract}
@@ -47,6 +54,8 @@ Village ponds are often dug where land happens to be free rather than where rain
   Harvesting, Catchment Estimation, Web GIS, REST APIs}
 
 \maketitle
+
+\noindent\textbf{Live application:} \url{http://10.1.75.53:3247/} (IIT Bhilai campus network) \quad \textbf{Demo video:} \url{https://youtu.be/vMweMjVhEAE}
 
 %% =====================================================================
 \section{Introduction}
@@ -354,7 +363,7 @@ AI assistants were used during development: Google Antigravity and Anthropic Cla
 \appendix
 
 \section{Source Code and Repository}
-Repository: \url{https://github.com/RahulSeera/pond-planning-backend}. Live application (campus network): \url{http://10.1.75.53:3247/}. Structure: \texttt{app/main.py} (API and orchestration), \texttt{app/heavy\_jobs.py} (admission control), \texttt{app/modules/} (terrain, catchment, contour, rainfall, recommendation, village search), \texttt{app/db/} (PostGIS models, cache), \texttt{app/static/} (frontend), \texttt{data/} (bundled rainfall, history), \texttt{scripts/} (start, watchdog, stress test, rainfall builder), \texttt{tests/} (28 tests), \texttt{report/} (this report and demo guides).
+Repository: \url{https://github.com/RahulSeera/pond-planning-backend}. Live application (campus network): \url{http://10.1.75.53:3247/}. Demo video: \url{https://youtu.be/vMweMjVhEAE}. Structure: \texttt{app/main.py} (API and orchestration), \texttt{app/heavy\_jobs.py} (admission control), \texttt{app/modules/} (terrain, catchment, contour, rainfall, recommendation, village search), \texttt{app/db/} (PostGIS models, cache), \texttt{app/static/} (frontend), \texttt{data/} (bundled rainfall, history), \texttt{scripts/} (start, watchdog, stress test, rainfall builder), \texttt{tests/} (28 tests), \texttt{report/} (this report and demo guides).
 
 \begin{thebibliography}{9}
 \bibitem{barnes2014}
