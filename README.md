@@ -65,7 +65,7 @@
 | `POST` | `/api/analyze` | `{"lat": float, "lon": float, "village_id": int?}` | Catchment polygon, area, slope, rainfall stats, runoff volume, pond sizing |
 | `GET` | `/api/analyze/{id}` | Path parameter: `id` | Previously computed analysis retrieved by ID |
 | `POST` | `/api/analyze-area` | `{"bounds": {"min_lat", "max_lat", "min_lon", "max_lon"}}` | Discovers optimal pond site within drawn area, basin boundary, volume, and sizing |
-| `POST` | `/analyzeContour` | Multipart form: `contour_map` (.kml / .kmz) | Auto-discovered site, 1,355 lines parsed, 3.87 km² basin, 1.27M m³ runoff, pond dimensions |
+| `POST` | `/analyzeContour` | Multipart form: `contour_map` (.kml / .kmz) | Auto-discovered site, 1,355 lines parsed, 3.9116 km² basin, 1.71M m³ runoff, pond dimensions |
 | `GET` | `/api/villages/search` | Query: `?q=<name>` | Matching Indian villages/districts with centroid coordinates |
 | `GET` | `/api/villages/{id}/history` | Path parameter: `id` | Past analysis runs for the specified village |
 | `GET` | `/api/analyses/recent` | — | Recent 12 analysis runs across all sessions |
@@ -108,14 +108,24 @@ http://127.0.0.1:8000/
 ## Automated Verification & Test Suite
 
 ```bash
-# Run all unit, integration, and stress tests:
-python3 tests/test_contour.py     # Real benchmark 1m contour map (1355 lines)
-python3 tests/test_extended.py    # KMZ archive, empty files, malformed XML, area selection, health
-python3 tests/test_rainfall.py    # Open-Meteo aggregation & monsoon breakdown
-python3 tests/test_cache.py       # Coarse-grid rounded spatial caching (TTL)
-python3 tests/test_terrain.py     # D8 flow routing & depression filling
-python3 tests/test_db.py          # PostgreSQL+PostGIS spatial geometry persistence
+# Run the full suite (27 tests):
+.venv/bin/pytest tests/ -q
+
+# Individual groups:
+.venv/bin/pytest tests/test_contour.py      # Real benchmark 1m contour map (1355 lines)
+.venv/bin/pytest tests/test_extended.py     # KMZ archive, empty files, malformed XML, area selection, health
+.venv/bin/pytest tests/test_scientific.py   # Units, depth bounds, scoring, SRTM int16, parcel containment, rainfall fallback
+.venv/bin/pytest tests/test_rainfall.py     # Open-Meteo aggregation & monsoon breakdown
+.venv/bin/pytest tests/test_cache.py        # Coarse-grid rounded spatial caching (TTL)
+.venv/bin/pytest tests/test_terrain.py      # D8 flow routing & depression filling
+.venv/bin/pytest tests/test_db.py           # PostgreSQL+PostGIS spatial geometry persistence
 ```
+
+Note: several tests query Open-Meteo live, and its free tier limits 10-year queries per day. Avoid re-running the suite many times just before a demo; if the quota runs out, the app uses the bundled data in `data/rainfall_cache.json`.
+
+## Scope of the Recommendation
+
+"Best site" means the point of **maximum runoff convergence**. The system does **not** check existing rivers, canals or tanks, land ownership, land use, soil, groundwater, flood safety, downstream rights, approvals, access or cost. On the sample map the selected point lies in the Shivnath river channel. Treat results as screening recommendations to be verified in the field (see `report/final_report.pdf` §9.2).
 
 ---
 

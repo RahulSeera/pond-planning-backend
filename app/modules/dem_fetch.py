@@ -44,12 +44,21 @@ async def fetch_dem_tile(lat: float, lon: float, buffer_deg: float = 0.05, out_p
         "API_Key": OPENTOPOGRAPHY_API_KEY,
     }
 
-    try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
-            resp = await client.get(OPENTOPOGRAPHY_URL, params=params)
-            resp.raise_for_status()
-            with open(out_path, "wb") as f:
-                f.write(resp.content)
-        return out_path
-    except httpx.HTTPError as e:
-        raise TerrainDataError(f"DEM download failed: {e}")
+    # Short connect timeout (fail fast if unreachable) but a long read timeout:
+    # OpenTopography can take ~20 s to generate a tile when reached from the
+    # campus container. Connection setup from the container fails intermittently,
+    # so a connect failure (nothing was sent yet) is retried once.
+    last_error = None
+    for attempt in range(2):
+        try:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(60.0, connect=10.0)) as client:
+                resp = await client.get(OPENTOPOGRAPHY_URL, params=params)
+                resp.raise_for_status()
+                with open(out_path, "wb") as f:
+                    f.write(resp.content)
+            return out_path
+        except (httpx.ConnectTimeout, httpx.ConnectError) as e:
+            last_error = e
+        except httpx.HTTPError as e:
+            raise TerrainDataError(f"DEM download failed: {type(e).__name__} {e}".strip())
+    raise TerrainDataError(f"DEM download failed: {type(last_error).__name__} {last_error}".strip())

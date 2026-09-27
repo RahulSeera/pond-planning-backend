@@ -439,15 +439,22 @@ document.addEventListener("DOMContentLoaded", () => {
   async function loadSampleDemo() {
     showLoading("Loading Chhattisgarh Sample Demo...", "Parsing 1,355 contour lines from sample KML and running hydrological pipeline...");
     try {
-      // Create synthetic sample bounding box representative of the real sample site
-      const bounds = { min_lat: 21.235, max_lat: 21.255, min_lon: 81.278, max_lon: 81.298 };
-      map.flyTo([21.24185, 81.28689], 14, { duration: 1.2 });
-      
-      const resp = await fetch("/api/analyze-area", {
+      // Run the REAL bundled 1m contour survey through the contour pipeline
+      map.flyTo([21.2417, 81.2869], 14, { duration: 1.2 });
+
+      const kmlResp = await fetch("/api/sample-contour");
+      if (!kmlResp.ok) throw new Error("Sample contour file is not available on this server.");
+      const formData = new FormData();
+      formData.append("contour_map", await kmlResp.blob(), "contours_1m.kml");
+
+      const resp = await fetch("/analyzeContour", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bounds, name: "Chhattisgarh Village Watershed" }),
+        body: formData,
       });
+      if (!resp.ok) {
+        const err = await resp.json();
+        throw new Error(err.detail || "Sample contour analysis failed.");
+      }
       const data = await resp.json();
       currentAnalysisData = data;
       renderResults(currentAnalysisData, "Chhattisgarh Sample Demo (1m Contours)");

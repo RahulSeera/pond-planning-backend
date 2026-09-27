@@ -7,6 +7,7 @@ Matches the professor's requirement:
   - Overlaid and visualized on the map
 """
 
+import asyncio
 import os
 import tempfile
 import numpy as np
@@ -16,7 +17,7 @@ from rasterio.transform import from_origin
 from app.schemas import BoundingBox, AreaAnalysisResponse, PondSite, TerrainResult, RainfallResult
 from app.modules.catchment import find_pond_site, catchment_to_geojson
 from app.modules.recommendation import recommend
-from app.modules.rainfall import get_rainfall_stats, RainfallDataError
+from app.modules.rainfall import get_rainfall_stats, RainfallDataError, fallback_rainfall
 from app.modules.dem_fetch import fetch_dem_tile
 
 
@@ -40,6 +41,8 @@ def generate_terrain_for_bounds(bounds: BoundingBox, out_path: str, resolution: 
     valley = -15.0 * np.exp(-((X - 2 * np.pi) ** 2) / 4.0)
     elevation = 280.0 + base_slope + hills + valley
 
+    # n pixels exactly tiling the bounding box (elevation is a synthetic function of
+    # the pixel index, so there is no separate sample-point grid to align with).
     pixel_size_lon = (bounds.max_lon - bounds.min_lon) / n_lon
     pixel_size_lat = (bounds.max_lat - bounds.min_lat) / n_lat
     transform = from_origin(bounds.min_lon, bounds.max_lat, pixel_size_lon, pixel_size_lat)
@@ -78,19 +81,26 @@ async def analyze_land_area(bounds: BoundingBox) -> AreaAnalysisResponse:
     center_lon = (bounds.min_lon + bounds.max_lon) / 2.0
     buffer_deg = max((bounds.max_lat - bounds.min_lat), (bounds.max_lon - bounds.min_lon)) / 2.0
 
-    # 1. Fetch real DEM tile or fallback to synthetic terrain
-    use_synthetic = False
+    # 1. Fetch a real SRTM DEM tile covering the parcel plus a surrounding buffer
+    #    (so the upstream catchment isn't truncated at the parcel edge), or fall
+    #    back to synthetic terrain if OpenTopography is unreachable.
     try:
-        await fetch_dem_tile(center_lat, center_lon, buffer_deg=max(buffer_deg, 0.02), out_path=tif_path)
+        await fetch_dem_tile(center_lat, center_lon, buffer_deg=max(buffer_deg + 0.01, 0.02), out_path=tif_path)
     except Exception as e:
-        use_synthetic = True
-        warnings.append(f"Using high-resolution topographic interpolation ({e}).")
+        warnings.append(
+            f"Real elevation data (OpenTopography SRTM) unavailable ({e}). Results below use "
+            "SYNTHETIC demonstration terrain, not the actual land surface — do not use for site decisions."
+        )
         generate_terrain_for_bounds(bounds, tif_path)
 
-    # 2. Run flow accumulation & auto-discover pond site
+    # 2. Run flow accumulation & auto-discover pond site — restricted to cells INSIDE
+    #    the selected parcel. CPU-bound, so it runs in a worker thread to keep the
+    #    event loop (and the /api/health watchdog probe) responsive.
+    search_bounds = (bounds.min_lon, bounds.min_lat, bounds.max_lon, bounds.max_lat)
     try:
-        result = find_pond_site(tif_path, border_margin_frac=0.08)
+        result = await asyncio.to_thread(find_pond_site, tif_path, 0.08, search_bounds)
     except Exception as e:
+        warnings.append(f"Terrain flow analysis failed ({e}); showing a rough whole-parcel estimate only.")
         # Fallback to center if terrain analysis fails
         pour_lat = center_lat
         pour_lon = center_lon
@@ -114,6 +124,11 @@ async def analyze_land_area(bounds: BoundingBox) -> AreaAnalysisResponse:
         }
     else:
         polygon = catchment_to_geojson(result["grid"], result["catchment_mask"])
+        if result.get("touches_edge"):
+            warnings.append(
+                "The catchment reaches the edge of the elevation tile, so the true upstream area "
+                "may be larger than reported — treat catchment area and runoff as lower bounds."
+            )
     finally:
         try:
             if os.path.exists(tif_path):
@@ -132,13 +147,8 @@ async def analyze_land_area(bounds: BoundingBox) -> AreaAnalysisResponse:
     try:
         rainfall_result = await get_rainfall_stats(pour_lat, pour_lon)
     except RainfallDataError:
-        warnings.append("Real-time Open-Meteo rainfall query failed; using regional climate baseline.")
-        # Climate baseline for Central India monsoon belt (1150mm annual, 920mm monsoon)
-        rainfall_result = RainfallResult(
-            annual_avg_mm=1150.0,
-            seasonal={"monsoon_mm": 920.0, "non_monsoon_mm": 230.0},
-            data_years=10,
-        )
+        rainfall_result, note = fallback_rainfall(pour_lat, pour_lon)
+        warnings.append(note)
 
     # 4. Sizing & expected water volume calculation
     terrain_result = TerrainResult(

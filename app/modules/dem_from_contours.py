@@ -41,7 +41,9 @@ class InterpolationError(Exception):
 
 def _decimate_points(points: np.ndarray, values: np.ndarray, max_points: int) -> tuple[np.ndarray, np.ndarray]:
     """
-    Evenly subsamples scattered points down to at most max_points, if needed.
+    Evenly subsamples scattered points with stride floor(n / max_points), if needed.
+    The result is bounded by 2 * max_points (e.g. 159,113 -> 22,731 points for the
+    reference contours_1m.kml), not by max_points exactly.
     Even (strided) subsampling rather than random keeps the reduction
     deterministic and preserves the overall spatial spread of the original
     points, which matters for interpolation quality.
@@ -143,10 +145,15 @@ def write_grid_to_geotiff(grid_data: dict, out_path: str) -> str:
     min_lon, max_lon, min_lat, max_lat = grid_data["bounds"]
     n_lat, n_lon = elevation_grid.shape
 
-    pixel_size_lon = (max_lon - min_lon) / n_lon
-    pixel_size_lat = (max_lat - min_lat) / n_lat
+    # contours_to_grid() sampled elevations at np.linspace(min, max, n) — i.e. the
+    # samples sit exactly on the bounding box edges, spaced span/(n-1) apart. Make
+    # those sample points the pixel CENTERS so every cell is georeferenced to where
+    # its elevation was actually interpolated (origin shifted out by half a pixel).
+    pixel_size_lon = (max_lon - min_lon) / (n_lon - 1)
+    pixel_size_lat = (max_lat - min_lat) / (n_lat - 1)
 
-    transform = from_origin(min_lon, max_lat, pixel_size_lon, pixel_size_lat)
+    transform = from_origin(min_lon - pixel_size_lon / 2, max_lat + pixel_size_lat / 2,
+                            pixel_size_lon, pixel_size_lat)
 
     with rasterio.open(
         out_path, "w", driver="GTiff", height=n_lat, width=n_lon, count=1,

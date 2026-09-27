@@ -1,0 +1,178 @@
+{
+ "source": "Open-Meteo Historical Weather API (archive-api.open-meteo.com)",
+ "points": [
+  {
+   "label": "contours_1m.kml pond site",
+   "lat": 21.24171,
+   "lon": 81.28692,
+   "annual_avg_mm": 1415.2,
+   "monsoon_mm": 1251.4,
+   "non_monsoon_mm": 163.8,
+   "data_years": 10
+  },
+  {
+   "label": "sample land-area box centre",
+   "lat": 21.245,
+   "lon": 81.288,
+   "annual_avg_mm": 1415.2,
+   "monsoon_mm": 1251.4,
+   "non_monsoon_mm": 163.8,
+   "data_years": 10
+  },
+  {
+   "label": "point demo",
+   "lat": 21.25,
+   "lon": 81.29,
+   "annual_avg_mm": 1415.2,
+   "monsoon_mm": 1251.4,
+   "non_monsoon_mm": 163.8,
+   "data_years": 10
+  },
+  {
+   "label": "grid 21.0,81.1",
+   "lat": 21.0,
+   "lon": 81.1,
+   "annual_avg_mm": 1442.5,
+   "monsoon_mm": 1272.0,
+   "non_monsoon_mm": 170.5,
+   "data_years": 10
+  },
+  {
+   "label": "grid 21.0,81.2",
+   "lat": 21.0,
+   "lon": 81.2,
+   "annual_avg_mm": 1486.2,
+   "monsoon_mm": 1305.7,
+   "non_monsoon_mm": 180.6,
+   "data_years": 10
+  },
+  {
+   "label": "grid 21.0,81.3",
+   "lat": 21.0,
+   "lon": 81.3,
+   "annual_avg_mm": 1523.3,
+   "monsoon_mm": 1343.4,
+   "non_monsoon_mm": 179.8,
+   "data_years": 10
+  },
+  {
+   "label": "grid 21.0,81.4",
+   "lat": 21.0,
+   "lon": 81.4,
+   "annual_avg_mm": 1511.8,
+   "monsoon_mm": 1336.8,
+   "non_monsoon_mm": 175.0,
+   "data_years": 10
+  },
+  {
+   "label": "grid 21.0,81.5",
+   "lat": 21.0,
+   "lon": 81.5,
+   "annual_avg_mm": 1495.3,
+   "monsoon_mm": 1320.8,
+   "non_monsoon_mm": 174.5,
+   "data_years": 10
+  },
+  {
+   "label": "grid 21.1,81.1",
+   "lat": 21.1,
+   "lon": 81.1,
+   "annual_avg_mm": 1386.4,
+   "monsoon_mm": 1231.8,
+   "non_monsoon_mm": 154.5,
+   "data_years": 10
+  },
+  {
+   "label": "grid 21.1,81.2",
+   "lat": 21.1,
+   "lon": 81.2,
+   "annual_avg_mm": 1387.1,
+   "monsoon_mm": 1228.5,
+   "non_monsoon_mm": 158.6,
+   "data_years": 10
+  },
+  {
+   "label": "grid 21.1,81.3",
+   "lat": 21.1,
+   "lon": 81.3,
+   "annual_avg_mm": 1427.7,
+   "monsoon_mm": 1267.8,
+   "non_monsoon_mm": 159.9,
+   "data_years": 10
+  },
+  {
+   "label": "grid 21.1,81.4",
+   "lat": 21.1,
+   "lon": 81.4,
+   "annual_avg_mm": 1443.2,
+   "monsoon_mm": 1275.6,
+   "non_monsoon_mm": 167.6,
+   "data_years": 10
+  },
+  {
+   "label": "grid 21.1,81.5",
+   "lat": 21.1,
+   "lon": 81.5,
+   "annual_avg_mm": 1425.6,
+   "monsoon_mm": 1252.0,
+   "non_monsoon_mm": 173.5,
+   "data_years": 10
+  },
+  {
+   "label": "grid 21.2,81.1",
+   "lat": 21.2,
+   "lon": 81.1,
+   "annual_avg_mm": 1409.3,
+   "monsoon_mm": 1252.1,
+   "non_monsoon_mm": 157.3,
+   "data_years": 10
+  },
+  {
+   "label": "grid 21.2,81.2",
+   "lat": 21.2,
+   "lon": 81.2,
+   "annual_avg_mm": 1405.7,
+   "monsoon_mm": 1241.4,
+   "non_monsoon_mm": 164.3,
+   "data_years": 10
+  },
+  {
+   "label": "grid 21.2,81.3",
+   "lat": 21.2,
+   "lon": 81.3,
+   "annual_avg_mm": 1436.4,
+   "monsoon_mm": 1272.2,
+   "non_monsoon_mm": 164.2,
+   "data_years": 10
+  },
+  {
+   "label": "grid 21.2,81.4",
+   "lat": 21.2,
+   "lon": 81.4,
+   "annual_avg_mm": 1497.4,
+   "monsoon_mm": 1318.2,
+   "non_monsoon_mm": 179.2,
+   "data_years": 10
+  },
+  {
+   "label": "grid 21.2,81.5",
+   "lat": 21.2,
+   "lon": 81.5,
+   "annual_avg_mm": 1420.3,
+   "monsoon_mm": 1240.8,
+   "non_monsoon_mm": 179.6,
+   "data_years": 10
+  },
+  {
+   "label": "grid 21.3,81.1",
+   "lat": 21.3,
+   "lon": 81.1,
+   "annual_avg_mm": 1415.2,
+   "monsoon_mm": 1251.2,
+   "non_monsoon_mm": 164.0,
+   "data_years": 10
+  }
+ ],
+ "period": "2016-2025",
+ "generated": "2026-09-27"
+}
